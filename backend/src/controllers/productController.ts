@@ -1,0 +1,91 @@
+import { Response } from "express";
+import prisma from "../utils/prisma";
+import { AuthRequest } from "../middlewares/auth";
+
+export const getProducts = async (req: AuthRequest, res: Response) => {
+  try {
+    const products = await prisma.producto.findMany({
+      where: { estado_disponibilidad: "disponible" },
+      include: { usuario: true },
+    });
+
+    res.status(200).json(products);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const getProductById = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const product = await prisma.producto.findUnique({
+      where: { id_producto: parseInt(id) },
+      include: { usuario: true },
+    });
+
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    res.status(200).json(product);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const createProduct = async (req: AuthRequest, res: Response) => {
+  try {
+    const { nombre, descripcion, precio, estado_uso } = req.body;
+    const userId = req.user?.id_usuario;
+
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const userVerification = await prisma.verificacion.findFirst({
+      where: { id_usuario: userId, estado: "aprobado" },
+    });
+
+    if (!userVerification) {
+      return res
+        .status(403)
+        .json({ message: "User must be verified to post products" });
+    }
+
+    const product = await prisma.producto.create({
+      data: {
+        id_usuario: userId,
+        nombre,
+        descripcion,
+        precio: parseFloat(precio),
+        estado_uso,
+      },
+    });
+
+    res.status(201).json({ message: "Product created successfully", product });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const getUserProducts = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.id_usuario;
+
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const products = await prisma.producto.findMany({
+      where: { id_usuario: userId },
+    });
+
+    res.status(200).json(products);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};

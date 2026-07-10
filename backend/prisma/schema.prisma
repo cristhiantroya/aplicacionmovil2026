@@ -1,0 +1,156 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  
+}
+
+enum EstadoCuenta {
+  activo
+  suspendido
+  baneado
+}
+
+enum EstadoUso {
+  nuevo
+  usado
+}
+
+enum EstadoDisponibilidad {
+  disponible
+  reservado
+  vendido
+}
+
+enum EstadoEscrow {
+  pendiente
+  en_garantia
+  completada
+  cancelada
+  disputada
+}
+
+enum EstadoVerificacion {
+  pendiente
+  aprobado
+  rechazado
+}
+
+enum Rol {
+  usuario
+  admin
+}
+
+model Usuario {
+  id_usuario          Int          @id @default(autoincrement())
+  nombre              String
+  correo              String       @unique
+  contrasena          String
+  documento_identidad String       @unique
+  telefono            String?      @unique
+  reputacion          Float        @default(0)
+  estado_cuenta       EstadoCuenta @default(activo)
+  rol                 Rol          @default(usuario)
+  creado_en           DateTime     @default(now())
+
+  productos                Producto[]
+  transaccionesComprador   Transaccion[]   @relation("Comprador")
+  transaccionesVendedor    Transaccion[]   @relation("Vendedor")
+  calificacionesEmitidas   Calificacion[]  @relation("Emisor")
+  calificacionesRecibidas  Calificacion[]  @relation("Receptor")
+  verificaciones           Verificacion[]
+  notificaciones           Notificacion[]
+
+  @@map("usuarios")
+}
+
+model Producto {
+  id_producto           Int                  @id @default(autoincrement())
+  id_usuario            Int
+  usuario               Usuario              @relation(fields: [id_usuario], references: [id_usuario])
+  nombre                String
+  descripcion           String?
+  precio                Decimal              @db.Decimal(10, 2)
+  estado_uso            EstadoUso
+  estado_disponibilidad EstadoDisponibilidad @default(disponible)
+  creado_en             DateTime             @default(now())
+
+  transacciones Transaccion[]
+
+  @@map("productos")
+}
+
+model PuntoSeguro {
+  id_punto  Int      @id @default(autoincrement())
+  nombre    String
+  direccion String
+  ciudad    String
+  latitud   Float
+  longitud  Float
+
+  transacciones Transaccion[]
+
+  @@map("puntos_seguros")
+}
+
+model Transaccion {
+  id_transaccion      Int          @id @default(autoincrement())
+  id_comprador        Int
+  comprador           Usuario      @relation("Comprador", fields: [id_comprador], references: [id_usuario])
+  id_vendedor         Int
+  vendedor            Usuario      @relation("Vendedor", fields: [id_vendedor], references: [id_usuario])
+  id_producto         Int
+  producto            Producto     @relation(fields: [id_producto], references: [id_producto])
+  id_punto            Int
+  puntoSeguro         PuntoSeguro  @relation(fields: [id_punto], references: [id_punto])
+  monto               Decimal      @db.Decimal(10, 2)
+  estado_escrow       EstadoEscrow @default(pendiente)
+  fecha_creacion      DateTime     @default(now())
+  fecha_actualizacion DateTime?    @updatedAt
+
+  calificaciones Calificacion[]
+
+  @@map("transacciones")
+}
+
+model Calificacion {
+  id_calificacion    Int         @id @default(autoincrement())
+  id_transaccion     Int
+  transaccion        Transaccion @relation(fields: [id_transaccion], references: [id_transaccion])
+  id_emisor          Int
+  emisor             Usuario     @relation("Emisor", fields: [id_emisor], references: [id_usuario])
+  id_receptor        Int
+  receptor           Usuario     @relation("Receptor", fields: [id_receptor], references: [id_usuario])
+  puntuacion         Int
+  comentario         String?
+  fecha_calificacion DateTime    @default(now())
+
+  @@unique([id_transaccion, id_emisor])
+  @@map("calificaciones")
+}
+
+model Verificacion {
+  id_verificacion Int                @id @default(autoincrement())
+  id_usuario      Int
+  usuario         Usuario            @relation(fields: [id_usuario], references: [id_usuario])
+  tipo_documento  String
+  estado          EstadoVerificacion @default(pendiente)
+  fecha_solicitud DateTime           @default(now())
+
+  @@map("verificaciones")
+}
+
+model Notificacion {
+  id_notificacion Int      @id @default(autoincrement())
+  id_usuario      Int
+  usuario         Usuario  @relation(fields: [id_usuario], references: [id_usuario])
+  titulo          String
+  mensaje         String
+  tipo            String
+  leido           Boolean  @default(false)
+  fecha_envio     DateTime @default(now())
+
+  @@map("notificaciones")
+}
