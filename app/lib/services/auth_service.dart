@@ -37,10 +37,7 @@ class AuthService {
     try {
       final response = await _apiService.dio.post(
         '/auth/login',
-        data: {
-          'correo': correo,
-          'contrasena': contrasena,
-        },
+        data: {'correo': correo, 'contrasena': contrasena},
       );
       return response.data;
     } catch (e) {
@@ -48,16 +45,36 @@ class AuthService {
     }
   }
 
-  Future<void> saveToken(String token) async {
-    await _apiService.storage.write(key: 'auth_token', value: token);
+  Future<Map<String, dynamic>> refresh(String refreshToken) async {
+    try {
+      final response = await _apiService.dio.post(
+        '/auth/refresh',
+        data: {'refreshToken': refreshToken},
+      );
+      return response.data;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> saveTokens({
+    required String accessToken,
+    required String refreshToken,
+  }) async {
+    await _apiService.storage.write(key: 'access_token', value: accessToken);
+    await _apiService.storage.write(key: 'refresh_token', value: refreshToken);
   }
 
   Future<void> saveUser(User user) async {
     await _apiService.storage.write(key: 'user', value: userToJson(user));
   }
 
-  Future<String?> getToken() async {
-    return await _apiService.storage.read(key: 'auth_token');
+  Future<String?> getAccessToken() async {
+    return await _apiService.storage.read(key: 'access_token');
+  }
+
+  Future<String?> getRefreshToken() async {
+    return await _apiService.storage.read(key: 'refresh_token');
   }
 
   Future<User?> getUser() async {
@@ -68,8 +85,19 @@ class AuthService {
     return null;
   }
 
-  Future<void> logout() async {
-    await _apiService.storage.delete(key: 'auth_token');
+  Future<void> logout({String? refreshToken}) async {
+    if (refreshToken != null) {
+      try {
+        await _apiService.dio.post(
+          '/auth/logout',
+          data: {'refreshToken': refreshToken},
+        );
+      } catch (e) {
+        // Even if server fails, we clear local storage
+      }
+    }
+    await _apiService.storage.delete(key: 'access_token');
+    await _apiService.storage.delete(key: 'refresh_token');
     await _apiService.storage.delete(key: 'user');
   }
 

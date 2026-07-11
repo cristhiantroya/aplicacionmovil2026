@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import prisma from "../utils/prisma";
 
 interface AuthRequest extends Request {
   user?: {
@@ -9,7 +8,7 @@ interface AuthRequest extends Request {
   };
 }
 
-export const authenticateToken = async (
+export const authenticateToken = (
   req: AuthRequest,
   res: Response,
   next: NextFunction
@@ -25,20 +24,12 @@ export const authenticateToken = async (
     const decoded = jwt.verify(
       token,
       process.env.JWT_SECRET || "fallback-secret"
-    ) as { id: number };
+    ) as { id: number; rol: string };
 
-    const user = await prisma.usuario.findUnique({
-      where: { id_usuario: decoded.id },
-    });
-
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    req.user = { id_usuario: user.id_usuario, rol: user.rol };
+    req.user = { id_usuario: decoded.id, rol: decoded.rol };
     next();
   } catch (error) {
-    return res.status(403).json({ message: "Invalid token" });
+    return res.status(401).json({ message: "Invalid or expired token" });
   }
 };
 

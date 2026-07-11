@@ -30,7 +30,11 @@ class Product {
       usuario: json['usuario'] != null ? User.fromJson(json['usuario']) : null,
       nombre: json['nombre'],
       descripcion: json['descripcion'],
-      precio: (json['precio'] as num).toDouble(),
+      // Prisma serializa los campos Decimal como texto (ej. "25.00"),
+      // así que aceptamos tanto String como num al convertirlo.
+      precio: json['precio'] is String
+          ? double.parse(json['precio'])
+          : (json['precio'] as num).toDouble(),
       estadoUso: json['estado_uso'],
       estadoDisponibilidad: json['estado_disponibilidad'],
       creadoEn: DateTime.parse(json['creado_en']),

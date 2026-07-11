@@ -4,7 +4,6 @@ generator client {
 
 datasource db {
   provider = "mysql"
-  
 }
 
 enum EstadoCuenta {
@@ -62,8 +61,21 @@ model Usuario {
   calificacionesRecibidas  Calificacion[]  @relation("Receptor")
   verificaciones           Verificacion[]
   notificaciones           Notificacion[]
+  refreshTokens            RefreshToken[]
 
   @@map("usuarios")
+}
+
+model RefreshToken {
+  id_refresh_token Int      @id @default(autoincrement())
+  token_hash       String   @unique
+  id_usuario       Int
+  usuario          Usuario  @relation(fields: [id_usuario], references: [id_usuario])
+  fecha_expiracion DateTime
+  revocado         Boolean  @default(false)
+  creado_en        DateTime @default(now())
+
+  @@map("refresh_tokens")
 }
 
 model Producto {

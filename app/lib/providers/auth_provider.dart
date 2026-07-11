@@ -20,9 +20,9 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
 
     final user = await _authService.getUser();
-    final token = await _authService.getToken();
+    final accessToken = await _authService.getAccessToken();
 
-    if (user != null && token != null) {
+    if (user != null && accessToken != null) {
       _user = user;
     }
 
@@ -49,11 +49,15 @@ class AuthProvider with ChangeNotifier {
         documentoIdentidad: documentoIdentidad,
         telefono: telefono,
       );
-      final token = response['token'];
+      final accessToken = response['accessToken'];
+      final refreshToken = response['refreshToken'];
       final userJson = response['user'];
       final user = User.fromJson(userJson);
 
-      await _authService.saveToken(token);
+      await _authService.saveTokens(
+        accessToken: accessToken,
+        refreshToken: refreshToken,
+      );
       await _authService.saveUser(user);
       _user = user;
     } catch (e) {
@@ -77,11 +81,15 @@ class AuthProvider with ChangeNotifier {
         correo: correo,
         contrasena: contrasena,
       );
-      final token = response['token'];
+      final accessToken = response['accessToken'];
+      final refreshToken = response['refreshToken'];
       final userJson = response['user'];
       final user = User.fromJson(userJson);
 
-      await _authService.saveToken(token);
+      await _authService.saveTokens(
+        accessToken: accessToken,
+        refreshToken: refreshToken,
+      );
       await _authService.saveUser(user);
       _user = user;
     } catch (e) {
@@ -95,7 +103,8 @@ class AuthProvider with ChangeNotifier {
   Future<void> logout() async {
     _isLoading = true;
     notifyListeners();
-    await _authService.logout();
+    final refreshToken = await _authService.getRefreshToken();
+    await _authService.logout(refreshToken: refreshToken);
     _user = null;
     _isLoading = false;
     notifyListeners();

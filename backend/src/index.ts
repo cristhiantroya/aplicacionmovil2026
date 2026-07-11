@@ -10,12 +10,20 @@ import pointRoutes from "./routes/pointRoutes";
 import notificationRoutes from "./routes/notificationRoutes";
 
 dotenv.config();
+console.log("Duración configurada del access token:", process.env.ACCESS_TOKEN_EXPIRES_IN);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
+app.use((req, res, next) => {
+  console.log(`➡️  ${req.method} ${req.path}`);
+  res.on("finish", () => {
+    console.log(`⬅️  ${req.method} ${req.path} - ${res.statusCode}`);
+  });
+  next();
+});
 
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
