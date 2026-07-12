@@ -57,9 +57,7 @@ class _MyAppState extends State<MyApp> {
     // Let's modify api_service.dart first!
     _apiService = ApiService(); // We'll modify ApiService to have a setter
     _authService = AuthService(_apiService);
-    _apiService.setAuthService(
-      _authService,
-    ); // We'll add this method to ApiService
+    _apiService.setAuthService(_authService); // We'll add this method to ApiService
     _authProvider = AuthProvider(_authService)..checkAuthStatus();
 
     // Set up the logout callback
@@ -90,7 +88,9 @@ class AuthWrapper extends StatelessWidget {
     final authProvider = Provider.of<AuthProvider>(context);
 
     if (authProvider.isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
     }
 
     if (authProvider.isAuthenticated) {

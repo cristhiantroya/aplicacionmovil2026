@@ -5,10 +5,11 @@ import {
   getTransactions,
 } from "../controllers/transactionController";
 import { authenticateToken } from "../middlewares/auth";
+import { validate, transactionSchema } from "../middlewares/validation";
 
 const router = express.Router();
 
-router.post("/", authenticateToken, createTransaction);
+router.post("/", authenticateToken, validate(transactionSchema), createTransaction);
 router.put("/:id", authenticateToken, updateTransactionStatus);
 router.get("/", authenticateToken, getTransactions);
 

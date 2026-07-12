@@ -8,7 +8,7 @@ export const generateAccessToken = (id_usuario: number, rol: string) => {
   };
   return jwt.sign(
     { id: id_usuario, rol },
-    process.env.JWT_SECRET || "fallback-secret",
+    process.env.JWT_SECRET as string,
     signOptions
   );
 };

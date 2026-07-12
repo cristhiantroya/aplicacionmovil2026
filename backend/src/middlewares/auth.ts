@@ -23,7 +23,7 @@ export const authenticateToken = (
   try {
     const decoded = jwt.verify(
       token,
-      process.env.JWT_SECRET || "fallback-secret"
+      process.env.JWT_SECRET as string
     ) as { id: number; rol: string };
 
     req.user = { id_usuario: decoded.id, rol: decoded.rol };
