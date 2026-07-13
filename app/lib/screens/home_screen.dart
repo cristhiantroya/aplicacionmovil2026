@@ -135,6 +135,36 @@ class _HomeScreenState extends State<HomeScreen> {
           return Card(
             margin: const EdgeInsets.only(bottom: 16),
             child: ListTile(
+              leading: product.imagenes.isNotEmpty
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        product.imagenes.first.url,
+                        width: 60,
+                        height: 60,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade300,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(Icons.image, size: 30),
+                          );
+                        },
+                      ),
+                    )
+                  : Container(
+                      width: 60,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.image, size: 30),
+                    ),
               title: Text(
                 product.nombre,
                 style: const TextStyle(fontWeight: FontWeight.bold),
@@ -153,9 +183,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ],
               ),
-              trailing: product.descripcion != null
-                  ? const Icon(Icons.arrow_forward_ios)
-                  : null,
+              trailing: const Icon(Icons.arrow_forward_ios),
               onTap: () {
                 Navigator.of(context)
                     .push(

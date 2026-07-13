@@ -42,6 +42,30 @@ enum Rol {
   admin
 }
 
+enum Categoria {
+  electronica
+  celulares_tablets
+  videojuegos_consolas
+  electrodomesticos
+  ropa_accesorios
+  belleza_salud
+  muebles
+  hogar_jardin
+  herramientas
+  vehiculos
+  bicicletas_motos
+  deportes_fitness
+  libros_peliculas
+  musica_instrumentos
+  ninos_bebes
+  juguetes_hobbies
+  mascotas
+  oficina_papeleria
+  arte_coleccionables
+  servicios
+  otros
+}
+
 model Usuario {
   id_usuario          Int          @id @default(autoincrement())
   nombre              String
@@ -87,11 +111,24 @@ model Producto {
   precio                Decimal              @db.Decimal(10, 2)
   estado_uso            EstadoUso
   estado_disponibilidad EstadoDisponibilidad @default(disponible)
+  categoria             Categoria?
+  ubicacion             String?
   creado_en             DateTime             @default(now())
 
   transacciones Transaccion[]
+  imagenes      ImagenProducto[]
 
   @@map("productos")
+}
+
+model ImagenProducto {
+  id_imagen  Int      @id @default(autoincrement())
+  id_producto Int
+  producto    Producto @relation(fields: [id_producto], references: [id_producto])
+  url         String
+  creado_en   DateTime @default(now())
+
+  @@map("imagenes_producto")
 }
 
 model PuntoSeguro {

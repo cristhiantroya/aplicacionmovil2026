@@ -14,7 +14,7 @@ import notificationRoutes from "./routes/notificationRoutes";
 dotenv.config();
 
 // Validate required environment variables
-const requiredEnvVars = ["JWT_SECRET"];
+const requiredEnvVars = ["JWT_SECRET", "CLOUDINARY_CLOUD_NAME", "CLOUDINARY_API_KEY", "CLOUDINARY_API_SECRET"];
 const missingEnvVars = requiredEnvVars.filter((varName) => !process.env[varName]);
 
 if (missingEnvVars.length > 0) {

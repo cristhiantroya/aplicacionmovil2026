@@ -19,11 +19,40 @@ export const productSchema = z.object({
   nombre: z.string().min(1, "El nombre es requerido"),
   descripcion: z.string().optional(),
   precio: z.number().positive("El precio debe ser un número mayor que 0"),
+  
   estado_uso: z.enum(["nuevo", "usado"], {
-      message: "El estado de uso debe ser 'nuevo' o 'usado'",
+    message: "El estado de uso debe ser 'nuevo' o 'usado'",
   }),
+  categoria: z.enum([
+    "electronica",
+    "celulares_tablets",
+    "videojuegos_consolas",
+    "electrodomesticos",
+    "ropa_accesorios",
+    "belleza_salud",
+    "muebles",
+    "hogar_jardin",
+    "herramientas",
+    "vehiculos",
+    "bicicletas_motos",
+    "deportes_fitness",
+    "libros_peliculas",
+    "musica_instrumentos",
+    "ninos_bebes",
+    "juguetes_hobbies",
+    "mascotas",
+    "oficina_papeleria",
+    "arte_coleccionables",
+    "servicios",
+    "otros",
+  ], {
+    message: "Categoría inválida o requerida",
+  }),
+  ubicacion: z.string().optional(),
 });
+
 export const updateProductSchema = productSchema.partial();
+
 export const transactionSchema = z.object({
   id_producto: z.number().int().positive("El id del producto debe ser un número válido y positivo"),
   id_punto: z.number().int().positive("El id del punto seguro debe ser un número válido y positivo"),

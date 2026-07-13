@@ -6,9 +6,12 @@ import {
   getUserProducts,
   updateProduct,
   deleteProduct,
+  addProductImage,
+  deleteProductImage,
 } from "../controllers/productController";
 import { authenticateToken } from "../middlewares/auth";
 import { validate, productSchema, updateProductSchema } from "../middlewares/validation";
+import upload from "../middlewares/multer";
 
 const router = express.Router();
 
@@ -87,6 +90,12 @@ router.get("/:id", authenticateToken, getProductById);
  *               estado_uso:
  *                 type: string
  *                 enum: [nuevo, usado]
+ *               categoria:
+ *                 type: string
+ *                 enum: [electronica, celulares_tablets, videojuegos_consolas, electrodomesticos, ropa_accesorios, belleza_salud, muebles, hogar_jardin, herramientas, vehiculos, bicicletas_motos, deportes_fitness, libros_peliculas, musica_instrumentos, ninos_bebes, juguetes_hobbies, mascotas, oficina_papeleria, arte_coleccionables, servicios, otros]
+ *               ubicacion:
+ *                 type: string
+ *                 optional: true
  *     responses:
  *       201:
  *         description: Product created successfully
@@ -127,6 +136,12 @@ router.post("/", authenticateToken, validate(productSchema), createProduct);
  *               estado_uso:
  *                 type: string
  *                 enum: [nuevo, usado]
+ *               categoria:
+ *                 type: string
+ *                 enum: [electronica, celulares_tablets, videojuegos_consolas, electrodomesticos, ropa_accesorios, belleza_salud, muebles, hogar_jardin, herramientas, vehiculos, bicicletas_motos, deportes_fitness, libros_peliculas, musica_instrumentos, ninos_bebes, juguetes_hobbies, mascotas, oficina_papeleria, arte_coleccionables, servicios, otros]
+ *               ubicacion:
+ *                 type: string
+ *                 optional: true
  *     responses:
  *       200:
  *         description: Product updated successfully
@@ -156,5 +171,64 @@ router.put("/:id", authenticateToken, validate(updateProductSchema), updateProdu
  *         description: Not allowed to delete this product
  */
 router.delete("/:id", authenticateToken, deleteProduct);
+
+/**
+ * @swagger
+ * /api/products/{id}/images:
+ *   post:
+ *     summary: Add image to product
+ *     tags: [Products]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       201:
+ *         description: Image added successfully
+ *       403:
+ *         description: Not allowed to add image
+ */
+router.post("/:id/images", authenticateToken, upload.single("image"), addProductImage);
+
+/**
+ * @swagger
+ * /api/products/{id}/images/{imageId}:
+ *   delete:
+ *     summary: Delete image from product
+ *     tags: [Products]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: path
+ *         name: imageId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Image deleted successfully
+ *       403:
+ *         description: Not allowed to delete image
+ */
+router.delete("/:id/images/:imageId", authenticateToken, deleteProductImage);
 
 export default router;

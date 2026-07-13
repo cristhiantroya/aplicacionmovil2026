@@ -108,6 +108,41 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // Product images
+            if (_product!.imagenes.isNotEmpty)
+              SizedBox(
+                height: 250,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _product!.imagenes.length,
+                  itemBuilder: (context, index) {
+                    final image = _product!.imagenes[index];
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(
+                          image.url,
+                          fit: BoxFit.cover,
+                          width: MediaQuery.of(context).size.width * 0.8,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              width: MediaQuery.of(context).size.width * 0.8,
+                              height: 250,
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade300,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(Icons.image, size: 80),
+                            );
+                          },
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            const SizedBox(height: 24),
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -170,6 +205,32 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 12),
+                    if (_product!.categoria != null && _product!.categoria!.isNotEmpty)
+                      Row(
+                        children: [
+                          const Icon(Icons.category, size: 18),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Categoría: ${_product!.categoria!.replaceAll('_', ' ').replaceFirstMapped(RegExp(r'^\w'), (match) => match.group(0)!.toUpperCase())}',
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                        ],
+                      ),
+                    if (_product!.ubicacion != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.location_on, size: 18),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Ubicación: ${_product!.ubicacion}',
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                          ],
+                        ),
+                      ),
                     const SizedBox(height: 16),
                     if (_product!.descripcion != null)
                       Text(
