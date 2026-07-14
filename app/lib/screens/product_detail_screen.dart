@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../constants/app_constants.dart';
 import '../services/api_service.dart';
 import '../services/product_service.dart';
 import '../services/transaction_service.dart';
+import '../providers/auth_provider.dart';
 import '../models/product_model.dart';
 import '../models/point_model.dart';
 import 'points_screen.dart';
@@ -19,6 +21,7 @@ class ProductDetailScreen extends StatefulWidget {
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
   Product? _product;
   bool _isLoading = true;
+  bool _isDeleting = false;
   String? _errorMessage;
   SafePoint? _selectedPoint;
 
@@ -73,8 +76,63 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     }
   }
 
+  Future<void> _confirmAndDelete() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Eliminar publicación'),
+        content: const Text(
+          '¿Estás seguro de que quieres eliminar esta publicación? Esta acción no se puede deshacer.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() {
+      _isDeleting = true;
+    });
+
+    try {
+      final apiService = ApiService();
+      final productService = ProductService(apiService);
+      await productService.deleteProduct(widget.productId);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Publicación eliminada exitosamente')),
+        );
+        Navigator.of(context).pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No se pudo eliminar: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isDeleting = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
+
     if (_isLoading) {
       return Scaffold(
         appBar: AppBar(title: const Text('Detalle del producto')),
@@ -101,14 +159,36 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       );
     }
 
+    final isOwner = authProvider.user != null &&
+        _product != null &&
+        _product!.idUsuario == authProvider.user!.idUsuario;
+
     return Scaffold(
-      appBar: AppBar(title: Text(_product!.nombre)),
+      appBar: AppBar(
+        title: Text(_product!.nombre),
+        actions: [
+          if (isOwner)
+            IconButton(
+              icon: _isDeleting
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.delete_outline),
+              tooltip: 'Eliminar publicación',
+              onPressed: _isDeleting ? null : _confirmAndDelete,
+            ),
+        ],
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Product images
             if (_product!.imagenes.isNotEmpty)
               SizedBox(
                 height: 250,
@@ -248,7 +328,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               ),
             ),
             const SizedBox(height: 24),
-            if (_product!.estadoDisponibilidad == 'disponible') ...[
+            if (!isOwner && _product!.estadoDisponibilidad == 'disponible') ...[
               const Text(
                 'Selecciona un punto seguro para la entrega',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
@@ -285,6 +365,21 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 child: const Text(
                   'Iniciar Transacción',
                   style: TextStyle(fontSize: 18),
+                ),
+              ),
+            ],
+            if (isOwner) ...[
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: _isDeleting ? null : _confirmAndDelete,
+                icon: const Icon(Icons.delete_outline, color: Colors.red),
+                label: const Text(
+                  'Eliminar publicación',
+                  style: TextStyle(color: Colors.red),
+                ),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Colors.red),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
               ),
             ],

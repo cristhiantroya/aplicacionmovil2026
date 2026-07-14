@@ -95,4 +95,12 @@ class ProductService {
       rethrow;
     }
   }
+
+  Future<void> deleteProduct(int id) async {
+    try {
+      await _apiService.dio.delete('/products/$id');
+    } catch (e) {
+      rethrow;
+    }
+  }
 }
