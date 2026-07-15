@@ -3,6 +3,7 @@ import prisma from "../utils/prisma";
 import { AuthRequest } from "../middlewares/auth";
 import cloudinary from "../utils/cloudinary";
 import cache from "../utils/cache";
+import { enqueueImagenProducto } from "../utils/imageQueue";
 
 const normalizeParamToString = (value: string | string[] | undefined) => {
   if (Array.isArray(value)) return value[0];
@@ -22,7 +23,13 @@ export const getProducts = async (req: AuthRequest, res: Response) => {
     console.log(`🔴 CACHE MISS: ${cacheKey}`);
     const products = await prisma.producto.findMany({
       where: { estado_disponibilidad: "disponible" },
-      include: { usuario: true, imagenes: true },
+      // Lazy loading parcial para performance:
+      // - Lista (home): solo necesitamos una miniatura (1 imagen) por producto.
+      // - Detalle (productById): se incluyen todas las imágenes para que el usuario vea todas.
+      include: {
+        usuario: true,
+        imagenes: { take: 1, orderBy: { id_imagen: "asc" } },
+      },
     });
 
     cache.set(cacheKey, products);
@@ -40,6 +47,7 @@ export const getProductById = async (req: AuthRequest, res: Response) => {
 
     const product = await prisma.producto.findUnique({
       where: { id_producto: parseInt(productId as string) },
+      // Detalle del producto: se requiere mostrar TODAS las imágenes.
       include: { usuario: true, imagenes: true },
     });
 
@@ -232,29 +240,31 @@ export const addProductImage = async (req: AuthRequest, res: Response) => {
 
     // Verificar propiedad o rol admin
     if (product.id_usuario !== userId && userRole !== "admin") {
-      return res.status(403).json({ message: "No tienes permiso sobre este recurso" });
+      return res
+        .status(403)
+        .json({ message: "No tienes permiso sobre este recurso" });
     }
 
-    // Upload to Cloudinary
-    const uploadResult = await new Promise<any>((resolve, reject) => {
-      const uploadStream = cloudinary.uploader.upload_stream(
-        { folder: "comprasegura/productos" },
-        (error, result) => {
-          if (error) reject(error);
-          else resolve(result);
-        }
-      );
-      uploadStream.end(file.buffer);
-    });
-
+    // 1) Crear registro inmediatamente como "procesando" (url aún null)
     const image = await prisma.imagenProducto.create({
       data: {
         id_producto: parseInt(productId as string),
-        url: uploadResult.secure_url,
+        estado: "procesando",
       },
     });
 
-    res.status(201).json({ message: "Image added successfully", image });
+    // 2) Encolar el trabajo en background
+    await enqueueImagenProducto({
+      id_imagen: image.id_imagen,
+      id_producto: image.id_producto,
+      buffer: file.buffer as Buffer,
+    });
+
+    // 3) Responder en seguida (202 Accepted)
+    res.status(202).json({
+      message: "Image enqueued for processing",
+      image,
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Internal server error" });
@@ -292,9 +302,11 @@ export const deleteProductImage = async (req: AuthRequest, res: Response) => {
     }
 
     // Delete from Cloudinary (extract public ID from URL)
-    const publicId = image.url.split("/").pop()?.split(".")[0];
-    if (publicId) {
-      await cloudinary.uploader.destroy(`comprasegura/productos/${publicId}`);
+    if (image.url) {
+      const publicId = image.url.split("/").pop()?.split(".")[0];
+      if (publicId) {
+        await cloudinary.uploader.destroy(`comprasegura/productos/${publicId}`);
+      }
     }
 
     await prisma.imagenProducto.delete({

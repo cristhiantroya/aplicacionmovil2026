@@ -66,6 +66,11 @@ enum Categoria {
   otros
 }
 
+enum EstadoImagen {
+  procesando
+  completada
+}
+
 model Usuario {
   id_usuario          Int          @id @default(autoincrement())
   nombre              String
@@ -130,11 +135,12 @@ model Producto {
 }
 
 model ImagenProducto {
-  id_imagen  Int      @id @default(autoincrement())
+  id_imagen  Int           @id @default(autoincrement())
   id_producto Int
-  producto    Producto @relation(fields: [id_producto], references: [id_producto])
-  url         String
-  creado_en   DateTime @default(now())
+  producto    Producto     @relation(fields: [id_producto], references: [id_producto])
+  estado      EstadoImagen @default(procesando)
+  url         String?
+  creado_en   DateTime     @default(now())
 
   @@map("imagenes_producto")
 }
