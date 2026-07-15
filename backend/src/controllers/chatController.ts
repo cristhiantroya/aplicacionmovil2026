@@ -142,24 +142,24 @@ export const getConversations = async (req: AuthRequest, res: Response) => {
       };
     });
 
-    // Recalcular tiene_no_leidos correctamente con query extra
-    const withUnread = await Promise.all(
-      mapped.map(async (m) => {
-        const conv = await prisma.conversacion.findUnique({
-          where: { id_conversacion: m.id_conversacion },
-          include: {
-            mensajes: {
-              where: { leido: false, id_emisor: { not: userId } },
-            },
-          },
-        });
+    // N+1 eliminado: una sola consulta agregada para saber qué conversaciones tienen mensajes no leídos
+    const unreadGroups = await prisma.mensaje.groupBy({
+      by: ["id_conversacion"],
+      where: {
+        leido: false,
+        id_emisor: { not: userId },
+      },
+      _count: {
+        id_mensaje: true,
+      },
+    });
 
-        return {
-          ...m,
-          tiene_no_leidos: (conv?.mensajes?.length ?? 0) > 0,
-        };
-      })
-    );
+    const unreadSet = new Set<number>(unreadGroups.map((g) => g.id_conversacion));
+
+    const withUnread = mapped.map((m) => ({
+      ...m,
+      tiene_no_leidos: unreadSet.has(m.id_conversacion),
+    }));
 
     res.status(200).json(withUnread);
   } catch (error) {

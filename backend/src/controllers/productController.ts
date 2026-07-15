@@ -2,6 +2,7 @@ import { Response } from "express";
 import prisma from "../utils/prisma";
 import { AuthRequest } from "../middlewares/auth";
 import cloudinary from "../utils/cloudinary";
+import cache from "../utils/cache";
 
 const normalizeParamToString = (value: string | string[] | undefined) => {
   if (Array.isArray(value)) return value[0];
@@ -10,11 +11,21 @@ const normalizeParamToString = (value: string | string[] | undefined) => {
 
 export const getProducts = async (req: AuthRequest, res: Response) => {
   try {
+    const cacheKey = "products:list";
+    const cached = cache.get(cacheKey);
+
+    if (cached) {
+      console.log(`🟢 CACHE HIT: ${cacheKey}`);
+      return res.status(200).json(cached);
+    }
+
+    console.log(`🔴 CACHE MISS: ${cacheKey}`);
     const products = await prisma.producto.findMany({
       where: { estado_disponibilidad: "disponible" },
       include: { usuario: true, imagenes: true },
     });
 
+    cache.set(cacheKey, products);
     res.status(200).json(products);
   } catch (error) {
     console.error(error);
@@ -74,6 +85,7 @@ export const createProduct = async (req: AuthRequest, res: Response) => {
       },
     });
 
+    cache.del("products:list");
     res.status(201).json({ message: "Product created successfully", product });
   } catch (error) {
     console.error(error);
@@ -138,7 +150,7 @@ export const updateProduct = async (req: AuthRequest, res: Response) => {
         ubicacion: ubicacion !== undefined ? ubicacion : product.ubicacion,
       },
     });
-
+    cache.del("products:list");
     res.status(200).json({ message: "Product updated successfully", product: updatedProduct });
   } catch (error) {
     console.error(error);
@@ -186,6 +198,7 @@ export const deleteProduct = async (req: AuthRequest, res: Response) => {
       where: { id_producto: parseInt(productId as string) },
     });
 
+    cache.del("products:list");
     res.status(200).json({ message: "Product deleted successfully" });
   } catch (error) {
     console.error(error);
