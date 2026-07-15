@@ -8,6 +8,7 @@ import 'create_product_screen.dart';
 import 'transactions_screen.dart';
 import 'profile_screen.dart';
 import 'notifications_screen.dart';
+import 'conversations_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -54,6 +55,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final List<Widget> screens = [
       _buildProductsScreen(),
       const TransactionsScreen(),
+      ConversationsScreen(apiService: ApiService()),
       const NotificationsScreen(),
       const ProfileScreen(),
     ];
@@ -83,6 +85,10 @@ class _HomeScreenState extends State<HomeScreen> {
           BottomNavigationBarItem(
             icon: Icon(Icons.swap_horiz),
             label: 'Transacciones',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.chat_bubble_outline),
+            label: 'Conversaciones',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.notifications),

@@ -18,11 +18,13 @@ class User {
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
       idUsuario: json['id_usuario'],
-      nombre: json['nombre'],
-      correo: json['correo'],
+      nombre: json['nombre'] ?? '',
+      correo: json['correo'] ?? '',
       telefono: json['telefono'],
-      reputacion: (json['reputacion'] as num).toDouble(),
-      estadoCuenta: json['estado_cuenta'],
+      reputacion: json['reputacion'] != null
+          ? (json['reputacion'] as num).toDouble()
+          : 0.0,
+      estadoCuenta: json['estado_cuenta'] ?? 'activo',
     );
   }
 

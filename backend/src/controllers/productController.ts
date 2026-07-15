@@ -3,6 +3,11 @@ import prisma from "../utils/prisma";
 import { AuthRequest } from "../middlewares/auth";
 import cloudinary from "../utils/cloudinary";
 
+const normalizeParamToString = (value: string | string[] | undefined) => {
+  if (Array.isArray(value)) return value[0];
+  return value;
+};
+
 export const getProducts = async (req: AuthRequest, res: Response) => {
   try {
     const products = await prisma.producto.findMany({
@@ -20,8 +25,10 @@ export const getProducts = async (req: AuthRequest, res: Response) => {
 export const getProductById = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
+    const productId = normalizeParamToString(id);
+
     const product = await prisma.producto.findUnique({
-      where: { id_producto: parseInt(id) },
+      where: { id_producto: parseInt(productId as string) },
       include: { usuario: true, imagenes: true },
     });
 
@@ -97,6 +104,8 @@ export const getUserProducts = async (req: AuthRequest, res: Response) => {
 export const updateProduct = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
+    const productId = normalizeParamToString(id);
+
     const { nombre, descripcion, precio, estado_uso, categoria, ubicacion } = req.body;
     const userId = req.user?.id_usuario;
     const userRole = req.user?.rol;
@@ -106,7 +115,7 @@ export const updateProduct = async (req: AuthRequest, res: Response) => {
     }
 
     const product = await prisma.producto.findUnique({
-      where: { id_producto: parseInt(id) },
+      where: { id_producto: parseInt(productId as string) },
     });
 
     if (!product) {
@@ -119,7 +128,7 @@ export const updateProduct = async (req: AuthRequest, res: Response) => {
     }
 
     const updatedProduct = await prisma.producto.update({
-      where: { id_producto: parseInt(id) },
+      where: { id_producto: parseInt(productId as string) },
       data: {
         nombre: nombre || product.nombre,
         descripcion: descripcion !== undefined ? descripcion : product.descripcion,
@@ -140,6 +149,8 @@ export const updateProduct = async (req: AuthRequest, res: Response) => {
 export const deleteProduct = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
+    const productId = normalizeParamToString(id);
+
     const userId = req.user?.id_usuario;
     const userRole = req.user?.rol;
 
@@ -148,7 +159,7 @@ export const deleteProduct = async (req: AuthRequest, res: Response) => {
     }
 
     const product = await prisma.producto.findUnique({
-      where: { id_producto: parseInt(id) },
+      where: { id_producto: parseInt(productId as string) },
       include: { transacciones: true },
     });
 
@@ -172,7 +183,7 @@ export const deleteProduct = async (req: AuthRequest, res: Response) => {
     }
 
     await prisma.producto.delete({
-      where: { id_producto: parseInt(id) },
+      where: { id_producto: parseInt(productId as string) },
     });
 
     res.status(200).json({ message: "Product deleted successfully" });
@@ -185,6 +196,8 @@ export const deleteProduct = async (req: AuthRequest, res: Response) => {
 export const addProductImage = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
+    const productId = normalizeParamToString(id);
+
     const userId = req.user?.id_usuario;
     const userRole = req.user?.rol;
     const file = req.file;
@@ -197,7 +210,7 @@ export const addProductImage = async (req: AuthRequest, res: Response) => {
     }
 
     const product = await prisma.producto.findUnique({
-      where: { id_producto: parseInt(id) },
+      where: { id_producto: parseInt(productId as string) },
     });
 
     if (!product) {
@@ -223,7 +236,7 @@ export const addProductImage = async (req: AuthRequest, res: Response) => {
 
     const image = await prisma.imagenProducto.create({
       data: {
-        id_producto: parseInt(id),
+        id_producto: parseInt(productId as string),
         url: uploadResult.secure_url,
       },
     });
@@ -238,6 +251,9 @@ export const addProductImage = async (req: AuthRequest, res: Response) => {
 export const deleteProductImage = async (req: AuthRequest, res: Response) => {
   try {
     const { id, imageId } = req.params;
+    const productId = normalizeParamToString(id);
+    const imageIdStr = normalizeParamToString(imageId);
+
     const userId = req.user?.id_usuario;
     const userRole = req.user?.rol;
 
@@ -246,7 +262,7 @@ export const deleteProductImage = async (req: AuthRequest, res: Response) => {
     }
 
     const image = await prisma.imagenProducto.findUnique({
-      where: { id_imagen: parseInt(imageId) },
+      where: { id_imagen: parseInt(imageIdStr as string) },
       include: { producto: true },
     });
 
@@ -256,7 +272,7 @@ export const deleteProductImage = async (req: AuthRequest, res: Response) => {
 
     // Verificar que la imagen pertenece al producto y el usuario es dueño o admin
     if (
-      image.id_producto !== parseInt(id) ||
+      image.id_producto !== parseInt(productId as string) ||
       (image.producto.id_usuario !== userId && userRole !== "admin")
     ) {
       return res.status(403).json({ message: "No tienes permiso sobre este recurso" });
@@ -269,7 +285,7 @@ export const deleteProductImage = async (req: AuthRequest, res: Response) => {
     }
 
     await prisma.imagenProducto.delete({
-      where: { id_imagen: parseInt(imageId) },
+      where: { id_imagen: parseInt(imageIdStr as string) },
     });
 
     res.status(200).json({ message: "Image deleted successfully" });

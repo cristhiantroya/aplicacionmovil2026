@@ -4,10 +4,14 @@ import '../constants/app_constants.dart';
 import '../services/api_service.dart';
 import '../services/product_service.dart';
 import '../services/transaction_service.dart';
+import '../services/chat_service.dart';
+
 import '../providers/auth_provider.dart';
 import '../models/product_model.dart';
 import '../models/point_model.dart';
+
 import 'points_screen.dart';
+import 'chat_screen.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final int productId;
@@ -116,9 +120,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('No se pudo eliminar: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('No se pudo eliminar: $e')));
       }
     } finally {
       if (mounted) {
@@ -159,7 +163,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       );
     }
 
-    final isOwner = authProvider.user != null &&
+    final isOwner =
+        authProvider.user != null &&
         _product != null &&
         _product!.idUsuario == authProvider.user!.idUsuario;
 
@@ -286,7 +291,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       ],
                     ),
                     const SizedBox(height: 12),
-                    if (_product!.categoria != null && _product!.categoria!.isNotEmpty)
+                    if (_product!.categoria != null &&
+                        _product!.categoria!.isNotEmpty)
                       Row(
                         children: [
                           const Icon(Icons.category, size: 18),
@@ -329,6 +335,45 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             ),
             const SizedBox(height: 24),
             if (!isOwner && _product!.estadoDisponibilidad == 'disponible') ...[
+              const SizedBox(height: 4),
+              // Botón de chat antes de concretar la compra
+              ElevatedButton.icon(
+                onPressed: () async {
+                  try {
+                    final apiService = ApiService();
+                    final chatService = ChatService(apiService);
+
+                    final conversacion = await chatService
+                        .createOrGetConversation(widget.productId);
+
+                    if (!mounted) return;
+
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => ChatScreen(
+                          idConversacion: conversacion.idConversacion,
+                          conversacion: conversacion,
+                        ),
+                      ),
+                    );
+                  } catch (e) {
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error al abrir el chat: $e')),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.chat_bubble_outline),
+                label: const Text('Chatear con el vendedor'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppConstants.primaryDark,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
               const Text(
                 'Selecciona un punto seguro para la entrega',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
@@ -365,6 +410,44 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 child: const Text(
                   'Iniciar Transacción',
                   style: TextStyle(fontSize: 18),
+                ),
+              ),
+            ],
+            if (!isOwner && _product!.estadoDisponibilidad != 'disponible') ...[
+              ElevatedButton.icon(
+                onPressed: () async {
+                  try {
+                    final apiService = ApiService();
+                    final chatService = ChatService(apiService);
+
+                    final conversacion = await chatService
+                        .createOrGetConversation(widget.productId);
+
+                    if (!mounted) return;
+
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => ChatScreen(
+                          idConversacion: conversacion.idConversacion,
+                          conversacion: conversacion,
+                        ),
+                      ),
+                    );
+                  } catch (e) {
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error al abrir el chat: $e')),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.chat_bubble_outline),
+                label: const Text('Chatear con el vendedor'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppConstants.primaryDark,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
               ),
             ],

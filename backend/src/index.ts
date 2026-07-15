@@ -10,6 +10,7 @@ import ratingRoutes from "./routes/ratingRoutes";
 import verificationRoutes from "./routes/verificationRoutes";
 import pointRoutes from "./routes/pointRoutes";
 import notificationRoutes from "./routes/notificationRoutes";
+import chatRoutes from "./routes/chatRoutes";
 
 dotenv.config();
 
@@ -77,6 +78,7 @@ app.use("/api/ratings", ratingRoutes);
 app.use("/api/verifications", verificationRoutes);
 app.use("/api/points", pointRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/chat", chatRoutes);
 
 app.get("/", (req, res) => {
   res.json({ message: "CompraSegura API is running!" });

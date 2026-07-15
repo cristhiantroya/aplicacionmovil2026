@@ -12,7 +12,7 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
     }
 
     const product = await prisma.producto.findUnique({
-      where: { id_producto: parseInt(id_producto) },
+      where: { id_producto: parseInt(id_producto as string) },
     });
 
     if (!product) {
@@ -30,7 +30,7 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
     }
 
     const point = await prisma.puntoSeguro.findUnique({
-      where: { id_punto: parseInt(id_punto) },
+      where: { id_punto: parseInt(id_punto as string) },
     });
 
     if (!point) {
@@ -41,15 +41,15 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
       data: {
         id_comprador: userId,
         id_vendedor: product.id_usuario,
-        id_producto: parseInt(id_producto),
-        id_punto: parseInt(id_punto),
+        id_producto: parseInt(id_producto as string),
+        id_punto: parseInt(id_punto as string),
         monto: product.precio,
         estado_escrow: "pendiente",
       },
     });
 
     await prisma.producto.update({
-      where: { id_producto: parseInt(id_producto) },
+      where: { id_producto: parseInt(id_producto as string) },
       data: { estado_disponibilidad: "reservado" },
     });
 
@@ -85,6 +85,7 @@ export const updateTransactionStatus = async (
 ) => {
   try {
     const { id } = req.params;
+    const txId = Array.isArray(id) ? id[0] : id;
     const { estado_escrow } = req.body;
     const userId = req.user?.id_usuario;
 
@@ -93,7 +94,7 @@ export const updateTransactionStatus = async (
     }
 
     const transaction = await prisma.transaccion.findUnique({
-      where: { id_transaccion: parseInt(id) },
+      where: { id_transaccion: parseInt(txId as string) },
       include: { producto: true },
     });
 
@@ -109,7 +110,7 @@ export const updateTransactionStatus = async (
     }
 
     const updatedTransaction = await prisma.transaccion.update({
-      where: { id_transaccion: parseInt(id) },
+      where: { id_transaccion: parseInt(txId as string) },
       data: { estado_escrow },
     });
 

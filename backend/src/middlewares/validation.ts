@@ -58,6 +58,10 @@ export const transactionSchema = z.object({
   id_punto: z.number().int().positive("El id del punto seguro debe ser un número válido y positivo"),
 });
 
+export const mensajeSchema = z.object({
+  contenido: z.string().min(1, "El mensaje no puede estar vacío").max(1000, "El mensaje es demasiado largo"),
+});
+
 // Middleware to validate request body against a schema
 export const validate = (schema: z.ZodSchema) => {
   return (req: Request, res: Response, next: NextFunction) => {

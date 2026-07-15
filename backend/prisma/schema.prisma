@@ -87,6 +87,11 @@ model Usuario {
   notificaciones           Notificacion[]
   refreshTokens            RefreshToken[]
 
+  // Chat
+  conversacionesComprador  Conversacion[] @relation("CompradorConversacion")
+  conversacionesVendedor   Conversacion[] @relation("VendedorConversacion")
+  mensajesEnviados         Mensaje[]      @relation("EmisorMensaje")
+
   @@map("usuarios")
 }
 
@@ -117,6 +122,9 @@ model Producto {
 
   transacciones Transaccion[]
   imagenes      ImagenProducto[]
+
+  // Chat
+  conversaciones Conversacion[]
 
   @@map("productos")
 }
@@ -178,6 +186,40 @@ model Calificacion {
 
   @@unique([id_transaccion, id_emisor])
   @@map("calificaciones")
+}
+
+model Conversacion {
+  id_conversacion Int @id @default(autoincrement())
+  id_producto     Int
+  producto        Producto @relation(fields: [id_producto], references: [id_producto])
+
+  id_comprador    Int
+  comprador       Usuario @relation("CompradorConversacion", fields: [id_comprador], references: [id_usuario])
+
+  id_vendedor     Int
+  vendedor        Usuario @relation("VendedorConversacion", fields: [id_vendedor], references: [id_usuario])
+
+  creado_en       DateTime @default(now())
+
+  mensajes Mensaje[]
+
+  @@unique([id_producto, id_comprador])
+  @@map("conversaciones")
+}
+
+model Mensaje {
+  id_mensaje      Int @id @default(autoincrement())
+  id_conversacion Int
+  conversacion    Conversacion @relation(fields: [id_conversacion], references: [id_conversacion])
+
+  id_emisor       Int
+  emisor          Usuario @relation("EmisorMensaje", fields: [id_emisor], references: [id_usuario])
+
+  contenido       String @db.Text
+  leido           Boolean @default(false)
+  creado_en       DateTime @default(now())
+
+  @@map("mensajes")
 }
 
 model Verificacion {
