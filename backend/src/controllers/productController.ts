@@ -202,6 +202,11 @@ export const deleteProduct = async (req: AuthRequest, res: Response) => {
       });
     }
 
+   // Borrar primero las imágenes asociadas (restricción de llave foránea)
+    await prisma.imagenProducto.deleteMany({
+      where: { id_producto: parseInt(productId as string) },
+    });
+
     await prisma.producto.delete({
       where: { id_producto: parseInt(productId as string) },
     });

@@ -6,9 +6,9 @@ import '../models/product_model.dart';
 import 'product_detail_screen.dart';
 import 'create_product_screen.dart';
 import 'transactions_screen.dart';
+import 'conversations_screen.dart';
 import 'profile_screen.dart';
 import 'notifications_screen.dart';
-import 'conversations_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -22,11 +22,19 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = true;
   String? _errorMessage;
   int _selectedIndex = 0;
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _loadProducts();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadProducts() async {
@@ -48,6 +56,16 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _selectedIndex = index;
     });
+  }
+
+  List<Product> get _filteredProducts {
+    if (_searchQuery.trim().isEmpty) {
+      return _products;
+    }
+    final query = _searchQuery.trim().toLowerCase();
+    return _products
+        .where((p) => p.nombre.toLowerCase().contains(query))
+        .toList();
   }
 
   @override
@@ -106,6 +124,44 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildSearchBar() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      child: TextField(
+        controller: _searchController,
+        style: const TextStyle(color: Colors.white),
+        decoration: InputDecoration(
+          hintText: 'Buscar productos...',
+          hintStyle: const TextStyle(color: Colors.white54),
+          prefixIcon: const Icon(Icons.search, color: Colors.white54),
+          suffixIcon: _searchQuery.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.clear, color: Colors.white54),
+                  onPressed: () {
+                    setState(() {
+                      _searchController.clear();
+                      _searchQuery = '';
+                    });
+                  },
+                )
+              : null,
+          filled: true,
+          fillColor: AppConstants.accentBlue.withValues(alpha: 0.3),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(20),
+            borderSide: BorderSide.none,
+          ),
+          contentPadding: const EdgeInsets.symmetric(vertical: 12),
+        ),
+        onChanged: (value) {
+          setState(() {
+            _searchQuery = value;
+          });
+        },
+      ),
+    );
+  }
+
   Widget _buildProductsScreen() {
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
@@ -127,83 +183,102 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
-    if (_products.isEmpty) {
-      return const Center(child: Text('No hay productos disponibles'));
-    }
+    final filtered = _filteredProducts;
 
-    return RefreshIndicator(
-      onRefresh: _loadProducts,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: _products.length,
-        itemBuilder: (context, index) {
-          final product = _products[index];
-          return Card(
-            margin: const EdgeInsets.only(bottom: 16),
-            child: ListTile(
-              leading: product.imagenes.isNotEmpty
-                  ? ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.network(
-                        product.imagenes.first.url,
-                        width: 60,
-                        height: 60,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            width: 60,
-                            height: 60,
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade300,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Icon(Icons.image, size: 30),
-                          );
-                        },
-                      ),
-                    )
-                  : Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(Icons.image, size: 30),
-                    ),
-              title: Text(
-                product.nombre,
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('\$${product.precio.toStringAsFixed(2)}'),
-                  Text(
-                    product.estadoUso == 'nuevo' ? 'Nuevo' : 'Usado',
-                    style: TextStyle(
-                      color: product.estadoUso == 'nuevo'
-                          ? Colors.green
-                          : Colors.orange,
-                    ),
+    return Column(
+      children: [
+        _buildSearchBar(),
+        Expanded(
+          child: _products.isEmpty
+              ? const Center(child: Text('No hay productos disponibles'))
+              : filtered.isEmpty
+              ? const Center(
+                  child: Text('No se encontraron productos con ese nombre'),
+                )
+              : RefreshIndicator(
+                  onRefresh: _loadProducts,
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: filtered.length,
+                    itemBuilder: (context, index) {
+                      final product = filtered[index];
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 16),
+                        child: ListTile(
+                          leading: product.imagenes.isNotEmpty
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.network(
+                                    product.imagenes.first.url,
+                                    width: 60,
+                                    height: 60,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Container(
+                                        width: 60,
+                                        height: 60,
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey.shade300,
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                        ),
+                                        child: const Icon(
+                                          Icons.image,
+                                          size: 30,
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                )
+                              : Container(
+                                  width: 60,
+                                  height: 60,
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade300,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(Icons.image, size: 30),
+                                ),
+                          title: Text(
+                            product.nombre,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('\$${product.precio.toStringAsFixed(2)}'),
+                              Text(
+                                product.estadoUso == 'nuevo'
+                                    ? 'Nuevo'
+                                    : 'Usado',
+                                style: TextStyle(
+                                  color: product.estadoUso == 'nuevo'
+                                      ? Colors.green
+                                      : Colors.orange,
+                                ),
+                              ),
+                            ],
+                          ),
+                          trailing: const Icon(Icons.arrow_forward_ios),
+                          onTap: () {
+                            Navigator.of(context)
+                                .push(
+                                  MaterialPageRoute(
+                                    builder: (context) => ProductDetailScreen(
+                                      productId: product.idProducto,
+                                    ),
+                                  ),
+                                )
+                                .then((_) => _loadProducts());
+                          },
+                        ),
+                      );
+                    },
                   ),
-                ],
-              ),
-              trailing: const Icon(Icons.arrow_forward_ios),
-              onTap: () {
-                Navigator.of(context)
-                    .push(
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            ProductDetailScreen(productId: product.idProducto),
-                      ),
-                    )
-                    .then((_) => _loadProducts());
-              },
-            ),
-          );
-        },
-      ),
+                ),
+        ),
+      ],
     );
   }
 }

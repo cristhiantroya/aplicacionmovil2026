@@ -38,8 +38,7 @@ const processOne = async (): Promise<void> => {
 
   const secureUrl = uploadResult?.secure_url;
   if (!secureUrl) {
-    // Si no hay URL, marcamos como completada igual para no dejar registros “colgados”.
-    // Alternativamente podrías agregar un estado “error”, pero no se solicitó.
+ 
     await prisma.imagenProducto.update({
       where: { id_imagen: job.id_imagen },
       data: { estado: "completada" },
