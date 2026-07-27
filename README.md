@@ -1,8 +1,3 @@
-# CompraSegura
-
-A secure mobile buying and selling application focused on trust and safety.
-
-## Tech Stack
 
 ### Backend
 - Node.js + TypeScript
