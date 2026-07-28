@@ -5,7 +5,13 @@ export const getSafePoints = async (req: Request, res: Response) => {
   try {
     const { ciudad } = req.query;
     const points = await prisma.puntoSeguro.findMany({
-      where: ciudad ? { ciudad: String(ciudad) } : {},
+      where: ciudad
+        ? {
+            ciudad: {
+              contains: String(ciudad),
+            },
+          }
+        : {},
     });
 
     res.status(200).json(points);

@@ -80,6 +80,84 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     }
   }
 
+  /// Extrae la ciudad del campo `ubicacion` comparando contra
+  /// ["Quito", "Guayaquil", "Cuenca"] de forma case-insensitive.
+  /// Retorna null si no se reconoce ninguna ciudad.
+  String? _detectCity(String? ubicacion) {
+    if (ubicacion == null || ubicacion.isEmpty) return null;
+    const ciudades = ["Quito", "Guayaquil", "Cuenca"];
+    for (final city in ciudades) {
+      if (ubicacion.toLowerCase().contains(city.toLowerCase())) {
+        return city;
+      }
+    }
+    return null;
+  }
+
+  /// Construye el selector de punto seguro basado en la ciudad detectada.
+  /// Si la ciudad es reconocida, muestra el botón que navega a PointsScreen
+  /// con el filtro de ciudad. Si no es reconocida, muestra un mensaje
+  /// bloqueante que impide continuar.
+  Widget _buildCityBasedPointSelector() {
+    final ciudadDetectada = _detectCity(_product?.ubicacion);
+
+    if (ciudadDetectada == null) {
+      return Card(
+        color: Colors.orange.shade50,
+        child: const Padding(
+          padding: EdgeInsets.all(16),
+          child: Column(
+            children: [
+              Icon(Icons.warning_amber_rounded, size: 32, color: Colors.orange),
+              SizedBox(height: 8),
+              Text(
+                'La ubicación de este producto no corresponde a ninguna '
+                'de las ciudades soportadas (Quito, Guayaquil, Cuenca). '
+                'No es posible iniciar una transacción para este producto.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 14, color: Colors.black87),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Ciudad detectada: $ciudadDetectada',
+          style: const TextStyle(fontSize: 14, color: Colors.grey),
+        ),
+        const SizedBox(height: 8),
+        ElevatedButton.icon(
+          onPressed: () async {
+            final result = await Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => PointsScreen(
+                  isSelecting: true,
+                  ciudad: ciudadDetectada,
+                ),
+              ),
+            );
+            if (result != null) {
+              setState(() {
+                _selectedPoint = result as SafePoint;
+              });
+            }
+          },
+          icon: const Icon(Icons.location_on),
+          label: Text(
+            _selectedPoint != null
+                ? _selectedPoint!.nombre
+                : 'Seleccionar punto seguro',
+          ),
+        ),
+      ],
+    );
+  }
+
   Future<void> _confirmAndDelete() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -379,39 +457,22 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
               ),
               const SizedBox(height: 12),
-              ElevatedButton.icon(
-                onPressed: () async {
-                  final result = await Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          const PointsScreen(isSelecting: true),
-                    ),
-                  );
-                  if (result != null) {
-                    setState(() {
-                      _selectedPoint = result as SafePoint;
-                    });
-                  }
-                },
-                icon: const Icon(Icons.location_on),
-                label: Text(
-                  _selectedPoint != null
-                      ? _selectedPoint!.nombre
-                      : 'Seleccionar punto seguro',
+              // Detectar ciudad desde la ubicación del producto
+              _buildCityBasedPointSelector(),
+              if (_detectCity(_product!.ubicacion) != null) ...[
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: _startTransaction,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppConstants.surfaceLight,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: const Text(
+                    'Iniciar Transacción',
+                    style: TextStyle(fontSize: 18),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: _startTransaction,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppConstants.surfaceLight,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-                child: const Text(
-                  'Iniciar Transacción',
-                  style: TextStyle(fontSize: 18),
-                ),
-              ),
+              ],
             ],
             if (!isOwner && _product!.estadoDisponibilidad != 'disponible') ...[
               ElevatedButton.icon(

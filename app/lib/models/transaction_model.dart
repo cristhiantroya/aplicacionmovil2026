@@ -52,7 +52,9 @@ class Transaction {
       puntoSeguro: json['puntoSeguro'] != null
           ? SafePoint.fromJson(json['puntoSeguro'])
           : null,
-      monto: (json['monto'] as num).toDouble(),
+      monto: json['monto'] is String
+          ? double.parse(json['monto'])
+          : (json['monto'] as num).toDouble(),
       estadoEscrow: json['estado_escrow'],
       fechaCreacion: DateTime.parse(json['fecha_creacion']),
       fechaActualizacion: json['fecha_actualizacion'] != null
