@@ -80,12 +80,32 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     }
   }
 
-  /// Extrae la ciudad del campo `ubicacion` comparando contra
-  /// ["Quito", "Guayaquil", "Cuenca"] de forma case-insensitive.
-  /// Retorna null si no se reconoce ninguna ciudad.
   String? _detectCity(String? ubicacion) {
     if (ubicacion == null || ubicacion.isEmpty) return null;
-    const ciudades = ["Quito", "Guayaquil", "Cuenca"];
+    const ciudades = [
+      "Quito",
+      "Guayaquil",
+      "Cuenca",
+      "Guaranda",
+      "Azogues",
+      "Tulcán",
+      "Riobamba",
+      "Latacunga",
+      "Machala",
+      "Esmeraldas",
+      "Ibarra",
+      "Loja",
+      "Babahoyo",
+      "Portoviejo",
+      "Macas",
+      "Tena",
+      "El Coca",
+      "Puyo",
+      "Santa Elena",
+      "Santo Domingo",
+      "Ambato",
+      "Zamora",
+    ];
     for (final city in ciudades) {
       if (ubicacion.toLowerCase().contains(city.toLowerCase())) {
         return city;
@@ -135,10 +155,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           onPressed: () async {
             final result = await Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (context) => PointsScreen(
-                  isSelecting: true,
-                  ciudad: ciudadDetectada,
-                ),
+                builder: (context) =>
+                    PointsScreen(isSelecting: true, ciudad: ciudadDetectada),
               ),
             );
             if (result != null) {
@@ -280,17 +298,43 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   itemCount: _product!.imagenes.length,
                   itemBuilder: (context, index) {
                     final image = _product!.imagenes[index];
+                    final width = MediaQuery.of(context).size.width * 0.8;
+
+                    if (image.url == null) {
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: Container(
+                          width: width,
+                          height: 250,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade300,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                CircularProgressIndicator(),
+                                SizedBox(height: 8),
+                                Text('Procesando imagen...'),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+
                     return Padding(
                       padding: const EdgeInsets.only(right: 8),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(8),
                         child: Image.network(
-                          image.url,
+                          image.url!,
                           fit: BoxFit.cover,
-                          width: MediaQuery.of(context).size.width * 0.8,
+                          width: width,
                           errorBuilder: (context, error, stackTrace) {
                             return Container(
-                              width: MediaQuery.of(context).size.width * 0.8,
+                              width: width,
                               height: 250,
                               decoration: BoxDecoration(
                                 color: Colors.grey.shade300,

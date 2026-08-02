@@ -3,13 +3,15 @@ import 'user_model.dart';
 class ProductImage {
   final int idImagen;
   final int idProducto;
-  final String url;
+  final String? url;
+  final String estado;
   final DateTime creadoEn;
 
   ProductImage({
     required this.idImagen,
     required this.idProducto,
-    required this.url,
+    this.url,
+    this.estado = 'completada',
     required this.creadoEn,
   });
 
@@ -18,6 +20,7 @@ class ProductImage {
       idImagen: json['id_imagen'],
       idProducto: json['id_producto'],
       url: json['url'],
+      estado: json['estado'] ?? 'completada',
       creadoEn: DateTime.parse(json['creado_en']),
     );
   }

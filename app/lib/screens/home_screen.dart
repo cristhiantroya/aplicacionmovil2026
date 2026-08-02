@@ -205,11 +205,13 @@ class _HomeScreenState extends State<HomeScreen> {
                       return Card(
                         margin: const EdgeInsets.only(bottom: 16),
                         child: ListTile(
-                          leading: product.imagenes.isNotEmpty
+                          leading:
+                              product.imagenes.isNotEmpty &&
+                                  product.imagenes.first.url != null
                               ? ClipRRect(
                                   borderRadius: BorderRadius.circular(8),
                                   child: Image.network(
-                                    product.imagenes.first.url,
+                                    product.imagenes.first.url!,
                                     width: 60,
                                     height: 60,
                                     fit: BoxFit.cover,

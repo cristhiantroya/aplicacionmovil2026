@@ -1,5 +1,6 @@
 import prisma from "./prisma";
 import cloudinary from "./cloudinary";
+import cache from "./cache";
 
 type ImagenJob = {
   id_imagen: number;
@@ -38,14 +39,14 @@ const processOne = async (): Promise<void> => {
 
   const secureUrl = uploadResult?.secure_url;
   if (!secureUrl) {
- 
+
     await prisma.imagenProducto.update({
       where: { id_imagen: job.id_imagen },
       data: { estado: "completada" },
     });
+    cache.del("products:list");
     return;
   }
-
   // 2) actualizar registro con url real + estado completada
   await prisma.imagenProducto.update({
     where: { id_imagen: job.id_imagen },
@@ -54,6 +55,7 @@ const processOne = async (): Promise<void> => {
       estado: "completada",
     },
   });
+  cache.del("products:list");
 };
 
 export const enqueueImagenProducto = async (job: ImagenJob): Promise<void> => {
