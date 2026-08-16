@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!--
+        Autorización ACOTADA de tráfico sin cifrar (HTTP, no HTTPS):
+        solo para el host de desarrollo local (10.0.2.2, que el emulador
+        de Android usa para representar el "localhost" de la máquina host).
+        Cualquier otro dominio sigue exigiendo HTTPS por defecto.
+    -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">10.0.2.2</domain>
+    </domain-config>
+</network-security-config>
