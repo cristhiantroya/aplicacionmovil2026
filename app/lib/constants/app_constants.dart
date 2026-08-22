@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:app/theme/app_theme_tokens.dart';
 
 class AppConstants {
   static const String baseUrl = String.fromEnvironment(
@@ -61,6 +62,7 @@ class AppConstants {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         elevation: 2,
       ),
+      extensions: const [AppSemanticColors.standard],
     );
   }
 }
