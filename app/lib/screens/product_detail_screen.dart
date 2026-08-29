@@ -1,17 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import '../constants/app_constants.dart';
 import '../services/api_service.dart';
 import '../services/product_service.dart';
 import '../services/transaction_service.dart';
 import '../services/chat_service.dart';
-
 import '../providers/auth_provider.dart';
 import '../models/product_model.dart';
 import '../models/point_model.dart';
-
-import 'points_screen.dart';
-import 'chat_screen.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final int productId;
@@ -69,7 +66,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Transacción iniciada exitosamente')),
         );
-        Navigator.of(context).pop();
+        context.pop();
       }
     } catch (e) {
       if (mounted) {
@@ -80,31 +77,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     }
   }
 
+  /// Extrae la ciudad del campo `ubicacion` comparando contra las
+  /// ciudades con puntos seguros cargados, de forma case-insensitive.
   String? _detectCity(String? ubicacion) {
     if (ubicacion == null || ubicacion.isEmpty) return null;
     const ciudades = [
-      "Quito",
-      "Guayaquil",
-      "Cuenca",
-      "Guaranda",
-      "Azogues",
-      "Tulcán",
-      "Riobamba",
-      "Latacunga",
-      "Machala",
-      "Esmeraldas",
-      "Ibarra",
-      "Loja",
-      "Babahoyo",
-      "Portoviejo",
-      "Macas",
-      "Tena",
-      "El Coca",
-      "Puyo",
-      "Santa Elena",
-      "Santo Domingo",
-      "Ambato",
-      "Zamora",
+      "Quito", "Guayaquil", "Cuenca", "Guaranda", "Azogues", "Tulcán",
+      "Riobamba", "Latacunga", "Machala", "Esmeraldas", "Ibarra", "Loja",
+      "Babahoyo", "Portoviejo", "Macas", "Tena", "El Coca", "Puyo",
+      "Santa Elena", "Santo Domingo", "Ambato", "Zamora",
     ];
     for (final city in ciudades) {
       if (ubicacion.toLowerCase().contains(city.toLowerCase())) {
@@ -114,10 +95,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     return null;
   }
 
-  /// Construye el selector de punto seguro basado en la ciudad detectada.
-  /// Si la ciudad es reconocida, muestra el botón que navega a PointsScreen
-  /// con el filtro de ciudad. Si no es reconocida, muestra un mensaje
-  /// bloqueante que impide continuar.
   Widget _buildCityBasedPointSelector() {
     final ciudadDetectada = _detectCity(_product?.ubicacion);
 
@@ -132,8 +109,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               SizedBox(height: 8),
               Text(
                 'La ubicación de este producto no corresponde a ninguna '
-                'de las ciudades soportadas (Quito, Guayaquil, Cuenca). '
-                'No es posible iniciar una transacción para este producto.',
+                'de las ciudades soportadas. No es posible iniciar una '
+                'transacción para este producto.',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 14, color: Colors.black87),
               ),
@@ -153,15 +130,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         const SizedBox(height: 8),
         ElevatedButton.icon(
           onPressed: () async {
-            final result = await Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) =>
-                    PointsScreen(isSelecting: true, ciudad: ciudadDetectada),
-              ),
+            // Ruta con parámetros por query string, no un objeto
+            // transportado entre pantallas.
+            final result = await context.push<SafePoint>(
+              '/points?ciudad=$ciudadDetectada&selecting=true',
             );
             if (result != null) {
               setState(() {
-                _selectedPoint = result as SafePoint;
+                _selectedPoint = result;
               });
             }
           },
@@ -212,13 +188,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Publicación eliminada exitosamente')),
         );
-        Navigator.of(context).pop();
+        context.pop();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('No se pudo eliminar: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No se pudo eliminar: $e')),
+        );
       }
     } finally {
       if (mounted) {
@@ -226,6 +202,25 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           _isDeleting = false;
         });
       }
+    }
+  }
+
+  Future<void> _openChat() async {
+    try {
+      final apiService = ApiService();
+      final chatService = ChatService(apiService);
+      final conversacion = await chatService.createOrGetConversation(widget.productId);
+
+      if (!mounted) return;
+
+      // Solo pasamos el ID por la ruta: ChatScreen reconstruye el
+      // resto (título, mensajes) consultando su propia API.
+      context.push('/chat/${conversacion.idConversacion}');
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al abrir el chat: $e')),
+      );
     }
   }
 
@@ -458,33 +453,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             const SizedBox(height: 24),
             if (!isOwner && _product!.estadoDisponibilidad == 'disponible') ...[
               const SizedBox(height: 4),
-              // Botón de chat antes de concretar la compra
               ElevatedButton.icon(
-                onPressed: () async {
-                  try {
-                    final apiService = ApiService();
-                    final chatService = ChatService(apiService);
-
-                    final conversacion = await chatService
-                        .createOrGetConversation(widget.productId);
-
-                    if (!mounted) return;
-
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => ChatScreen(
-                          idConversacion: conversacion.idConversacion,
-                          conversacion: conversacion,
-                        ),
-                      ),
-                    );
-                  } catch (e) {
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error al abrir el chat: $e')),
-                    );
-                  }
-                },
+                onPressed: _openChat,
                 icon: const Icon(Icons.chat_bubble_outline),
                 label: const Text('Chatear con el vendedor'),
                 style: ElevatedButton.styleFrom(
@@ -501,7 +471,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
               ),
               const SizedBox(height: 12),
-              // Detectar ciudad desde la ubicación del producto
               _buildCityBasedPointSelector(),
               if (_detectCity(_product!.ubicacion) != null) ...[
                 const SizedBox(height: 24),
@@ -520,31 +489,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             ],
             if (!isOwner && _product!.estadoDisponibilidad != 'disponible') ...[
               ElevatedButton.icon(
-                onPressed: () async {
-                  try {
-                    final apiService = ApiService();
-                    final chatService = ChatService(apiService);
-
-                    final conversacion = await chatService
-                        .createOrGetConversation(widget.productId);
-
-                    if (!mounted) return;
-
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => ChatScreen(
-                          idConversacion: conversacion.idConversacion,
-                          conversacion: conversacion,
-                        ),
-                      ),
-                    );
-                  } catch (e) {
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error al abrir el chat: $e')),
-                    );
-                  }
-                },
+                onPressed: _openChat,
                 icon: const Icon(Icons.chat_bubble_outline),
                 label: const Text('Chatear con el vendedor'),
                 style: ElevatedButton.styleFrom(

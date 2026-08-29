@@ -4,6 +4,7 @@ import 'package:latlong2/latlong.dart';
 import '../services/api_service.dart';
 import '../services/point_service.dart';
 import '../models/point_model.dart';
+import 'package:go_router/go_router.dart';
 
 class PointsScreen extends StatefulWidget {
   final bool isSelecting;
@@ -113,8 +114,8 @@ class _PointsScreenState extends State<PointsScreen> {
     );
 
     if (selected != null && mounted) {
-      Navigator.of(context).pop(selected);
-    }
+  context.pop(selected);
+}
   }
 
   @override

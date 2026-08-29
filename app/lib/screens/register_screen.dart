@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import '../providers/auth_provider.dart';
-import 'login_screen.dart';
-import 'home_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -126,6 +125,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ? null
                         : () async {
                             if (_formKey.currentState!.validate()) {
+                              // Igual que en login: el redirect de
+                              // go_router se encarga de navegar solo
+                              // al quedar autenticado.
                               await authProvider.register(
                                 nombre: _nameController.text,
                                 correo: _emailController.text,
@@ -135,15 +137,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     ? null
                                     : _phoneController.text,
                               );
-                              if (authProvider.isAuthenticated) {
-                                if (context.mounted) {
-                                  Navigator.of(context).pushReplacement(
-                                    MaterialPageRoute(
-                                      builder: (context) => const HomeScreen(),
-                                    ),
-                                  );
-                                }
-                              }
                             }
                           },
                     child: authProvider.isLoading
@@ -153,13 +146,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 const SizedBox(height: 16),
                 TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(
-                        builder: (context) => const LoginScreen(),
-                      ),
-                    );
-                  },
+                  onPressed: () => context.go('/login'),
                   child: const Text('¿Ya tienes cuenta? Inicia sesión aquí'),
                 ),
               ],

@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import '../providers/auth_provider.dart';
 import '../constants/app_constants.dart';
-import 'register_screen.dart';
-import 'home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -90,19 +89,16 @@ class _LoginScreenState extends State<LoginScreen> {
                           ? null
                           : () async {
                               if (_formKey.currentState!.validate()) {
+                                // Ya NO navegamos manualmente: en cuanto
+                                // login() marca al usuario como
+                                // autenticado, el redirect de go_router
+                                // (activado por refreshListenable) lo
+                                // envía solo al destino pretendido o a
+                                // /home.
                                 await authProvider.login(
                                   correo: _emailController.text,
                                   contrasena: _passwordController.text,
                                 );
-                                if (authProvider.isAuthenticated) {
-                                  if (context.mounted) {
-                                    Navigator.of(context).pushReplacement(
-                                      MaterialPageRoute(
-                                        builder: (context) => const HomeScreen(),
-                                      ),
-                                    );
-                                  }
-                                }
                               }
                             },
                       child: authProvider.isLoading
@@ -112,14 +108,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 16),
                   TextButton(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => const RegisterScreen(),
-                        ),
-                      );
-                    },
-                    child: const Text('¿No tienes cuenta? Registrate aquí'),
+                    onPressed: () => context.push('/register'),
+                    child: const Text('¿No tienes cuenta? Regístrate aquí'),
                   ),
                 ],
               ),

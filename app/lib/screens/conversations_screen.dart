@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import '../models/conversacion_model.dart';
 import '../services/chat_service.dart';
 import '../services/api_service.dart';
-import 'chat_screen.dart';
+import 'package:go_router/go_router.dart';
 
 class ConversationsScreen extends StatefulWidget {
   final ApiService apiService;
@@ -114,17 +114,8 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
                       ),
                       isThreeLine: true,
                       onTap: () {
-                        Navigator.of(context)
-                            .push(
-                              MaterialPageRoute(
-                                builder: (context) => ChatScreen(
-                                  idConversacion: c.idConversacion,
-                                  conversacion: c,
-                                ),
-                              ),
-                            )
-                            .then((_) => _fetch());
-                      },
+  context.push('/chat/${c.idConversacion}').then((_) => _fetch());
+},
                       trailing: tieneNoLeidos
                           ? Container(
                               width: 12,

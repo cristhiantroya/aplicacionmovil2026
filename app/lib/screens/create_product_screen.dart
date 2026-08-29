@@ -5,6 +5,7 @@ import '../constants/app_constants.dart';
 import '../services/api_service.dart';
 import '../services/product_service.dart';
 import '../services/verification_service.dart';
+import 'package:go_router/go_router.dart';
 
 class CreateProductScreen extends StatefulWidget {
   const CreateProductScreen({super.key});
@@ -124,6 +125,7 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
         }
 
         if (mounted) {
+          context.pop();
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Producto creado exitosamente')),
           );
@@ -189,10 +191,7 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
               // Fotos section
               const Text(
                 'Fotos',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
               Row(
@@ -274,10 +273,7 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
               // Detalles section
               const Text(
                 'Detalles',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
               TextFormField(
@@ -309,10 +305,7 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
               // Precio section
               const Text(
                 'Precio',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
               TextFormField(
@@ -341,10 +334,7 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
               // Categoría section
               const Text(
                 'Categoría',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
@@ -371,10 +361,7 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
               // Estado section
               const Text(
                 'Estado',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
@@ -399,10 +386,7 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
               // Ubicación section
               const Text(
                 'Ubicación',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
               TextFormField(
