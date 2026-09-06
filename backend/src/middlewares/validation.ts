@@ -74,7 +74,7 @@ export const validate = (schema: z.ZodSchema) => {
           field: issue.path[0],
           message: issue.message,
         }));
-        return res.status(400).json({ message: "Validation error", errors });
+        return res.status(422).json({ message: "Validation error", errors });
       }
       res.status(500).json({ message: "Internal server error" });
     }

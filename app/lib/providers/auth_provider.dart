@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
+import '../db/app_database.dart';
 
 class AuthProvider with ChangeNotifier {
   final AuthService _authService;
@@ -101,14 +102,22 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<void> logout() async {
-    _isLoading = true;
-    notifyListeners();
-    final refreshToken = await _authService.getRefreshToken();
-    await _authService.logout(refreshToken: refreshToken);
-    _user = null;
-    _isLoading = false;
-    notifyListeners();
-  }
+  _isLoading = true;
+  notifyListeners();
+
+  final refreshToken = await _authService.getRefreshToken();
+
+  await _authService.logout(
+    refreshToken: refreshToken,
+  );
+
+  await AppDatabase().wipeAll();
+
+  _user = null;
+  _isLoading = false;
+
+  notifyListeners();
+}
 
   void clearError() {
     _errorMessage = null;

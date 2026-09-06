@@ -6,6 +6,13 @@ import '../services/api_service.dart';
 import '../services/product_service.dart';
 import '../services/verification_service.dart';
 import 'package:go_router/go_router.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:uuid/uuid.dart';
+import '../db/app_database.dart';
+import '../services/sync_service.dart';
+import 'package:drift/drift.dart' as drift;
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:dio/dio.dart'; 
 
 class CreateProductScreen extends StatefulWidget {
   const CreateProductScreen({super.key});
@@ -26,6 +33,7 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
   bool _isLoading = false;
   bool _isVerified = false;
   bool _checkingVerification = true;
+  Map<String, String> _fieldErrors = {};
 
   static const Map<String, String> _categoryLabels = {
     'electronica': 'Electrónica',
@@ -62,12 +70,33 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
       final apiService = ApiService();
       final verificationService = VerificationService(apiService);
       final verification = await verificationService.getVerification();
-      setState(() {
-        _isVerified = verification?.estado == 'aprobado';
-      });
+      debugPrint('ESTADO: ${verification?.estado}');
+      
+      if (verification != null) {
+        setState(() {
+          _isVerified =
+              verification.estado.trim().toLowerCase() == 'aprobado';
+        });
+
+        await const FlutterSecureStorage().write(
+          key: 'verificado_cache',
+          value: _isVerified.toString(),
+        );
+      } else {
+        throw Exception('Verificación no disponible');
+      }
+      
+      debugPrint('CACHE VERIFICACION: $_isVerified');
+      
     } catch (e) {
+      final cache = await const FlutterSecureStorage().read(
+        key: 'verificado_cache',
+      );
+      
+      debugPrint('CACHE LEIDO: $cache');
+      
       setState(() {
-        _isVerified = false;
+        _isVerified = cache == 'true';
       });
     } finally {
       setState(() {
@@ -94,54 +123,179 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
   }
 
   Future<void> _createProduct() async {
-    if (_formKey.currentState!.validate()) {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final connectivity = await Connectivity().checkConnectivity();
+
+      final hayInternet = !connectivity.contains(
+        ConnectivityResult.none,
+      );
+      debugPrint('HAY INTERNET: $hayInternet');
+
+      if (!hayInternet) {
+        final db = AppDatabase();
+        final clienteId = const Uuid().v4();
+
+        await db.into(db.productosLocal).insert(
+          ProductosLocalCompanion.insert(
+            clienteId: clienteId,
+            nombre: _nameController.text,
+            precio: double.parse(_priceController.text),
+            estadoUso: _selectedCondition,
+            categoria: drift.Value(_selectedCategory),
+            ubicacion: _locationController.text.isEmpty
+                ? const drift.Value(null)
+                : drift.Value(_locationController.text),
+            actualizadoEn: DateTime.now(),
+            pendienteEnvio: const drift.Value(true),
+          ),
+        );
+
+        final syncService = SyncService(db);
+
+        await syncService.encolarCrearProducto(
+          clienteId,
+          {
+            'nombre': _nameController.text,
+            'descripcion': _descriptionController.text,
+            'precio': double.parse(_priceController.text),
+            'estado_uso': _selectedCondition,
+            'categoria': _selectedCategory,
+            'ubicacion': _locationController.text,
+          },
+        );
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Producto guardado localmente. Se sincronizará cuando vuelva la conexión.',
+              ),
+            ),
+          );
+
+          context.pop();
+        }
+
+        return;
+      }
+
+      final apiService = ApiService();
+      final productService = ProductService(apiService);
+
+      final createResponse = await productService.createProduct(
+        nombre: _nameController.text,
+        descripcion: _descriptionController.text.isEmpty
+            ? null
+            : _descriptionController.text,
+        precio: double.parse(_priceController.text),
+        estadoUso: _selectedCondition,
+        categoria: _selectedCategory,
+        ubicacion: _locationController.text.isEmpty
+            ? null
+            : _locationController.text,
+      );
+
+      final productId = createResponse['product']['id_producto'];
+
+      for (final imageFile in _selectedImages) {
+        await productService.uploadProductImage(
+          productId: productId,
+          imageFile: imageFile,
+        );
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Producto creado exitosamente'),
+          ),
+        );
+
+        context.pop();
+      }
+      
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.connectionError ||
+          e.type == DioExceptionType.connectionTimeout) {
+        
+        final db = AppDatabase();
+        final clienteId = const Uuid().v4();
+
+        await db.into(db.productosLocal).insert(
+          ProductosLocalCompanion.insert(
+            clienteId: clienteId,
+            nombre: _nameController.text,
+            precio: double.parse(_priceController.text),
+            estadoUso: _selectedCondition,
+            categoria: drift.Value(_selectedCategory),
+            ubicacion: _locationController.text.isEmpty
+                ? const drift.Value(null)
+                : drift.Value(_locationController.text),
+            actualizadoEn: DateTime.now(),
+            pendienteEnvio: const drift.Value(true),
+          ),
+        );
+
+        final syncService = SyncService(db);
+
+        await syncService.encolarCrearProducto(
+          clienteId,
+          {
+            'nombre': _nameController.text,
+            'descripcion': _descriptionController.text,
+            'precio': double.parse(_priceController.text),
+            'estado_uso': _selectedCondition,
+            'categoria': _selectedCategory,
+            'ubicacion': _locationController.text,
+          },
+        );
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Producto guardado localmente. Se sincronizará cuando vuelva la conexión.',
+              ),
+            ),
+          );
+
+          context.pop();
+        }
+
+        return;
+      }
+
+      rethrow;
+    } on ValidationException catch (e) {
       setState(() {
-        _isLoading = true;
+        _fieldErrors = e.fieldErrors;
+        _isLoading = false;
       });
 
-      try {
-        final apiService = ApiService();
-        final productService = ProductService(apiService);
-        final createResponse = await productService.createProduct(
-          nombre: _nameController.text,
-          descripcion: _descriptionController.text.isEmpty
-              ? null
-              : _descriptionController.text,
-          precio: double.parse(_priceController.text),
-          estadoUso: _selectedCondition,
-          categoria: _selectedCategory,
-          ubicacion: _locationController.text.isEmpty
-              ? null
-              : _locationController.text,
+      _formKey.currentState!.validate();
+      return;
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+          ),
         );
-        final productId = createResponse['product']['id_producto'];
-
-        // Upload all selected images
-        for (final imageFile in _selectedImages) {
-          await productService.uploadProductImage(
-            productId: productId,
-            imageFile: imageFile,
-          );
-        }
-
-        if (mounted) {
-          context.pop();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Producto creado exitosamente')),
-          );
-          Navigator.of(context).pop();
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Error: $e')));
-        }
-      } finally {
-        setState(() {
-          _isLoading = false;
-        });
       }
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
@@ -185,6 +339,7 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
         padding: const EdgeInsets.all(24),
         child: Form(
           key: _formKey,
+          autovalidateMode: AutovalidateMode.onUserInteraction,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -284,6 +439,7 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
                   border: OutlineInputBorder(),
                 ),
                 validator: (value) {
+                  if (_fieldErrors['nombre'] != null) return _fieldErrors['nombre'];
                   if (value == null || value.isEmpty) {
                     return 'Por favor ingrese el nombre del producto';
                   }
@@ -319,6 +475,7 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
                   decimal: true,
                 ),
                 validator: (value) {
+                  if (_fieldErrors['precio'] != null) return _fieldErrors['precio'];
                   if (value == null || value.isEmpty) {
                     return 'Por favor ingrese el precio';
                   }
@@ -365,7 +522,7 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
-                initialValue: _selectedCondition,
+                value: _selectedCondition,
                 decoration: const InputDecoration(
                   labelText: 'Estado',
                   prefixIcon: Icon(Icons.check_circle),

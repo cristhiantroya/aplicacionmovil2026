@@ -3,6 +3,7 @@ import '../models/product_model.dart';
 import 'api_service.dart';
 import 'package:dio/dio.dart';
 
+
 class ProductService {
   final ApiService _apiService;
 
@@ -58,9 +59,17 @@ class ProductService {
         },
       );
       return response.data;
-    } catch (e) {
-      rethrow;
+    } on DioException catch (e) {
+  if (e.response?.statusCode == 422) {
+    final data = e.response?.data;
+    final map = <String, String>{};
+    for (final err in (data['errors'] as List? ?? [])) {
+      map[err['field'].toString()] = err['message'].toString();
     }
+    throw ValidationException(map, data['message']?.toString() ?? 'Error de validación');
+  }
+  rethrow;
+}
   }
 
   Future<Map<String, dynamic>> uploadProductImage({
@@ -103,4 +112,11 @@ class ProductService {
       rethrow;
     }
   }
+}
+class ValidationException implements Exception {
+  final Map<String, String> fieldErrors;
+  final String message;
+  ValidationException(this.fieldErrors, this.message);
+  @override
+  String toString() => message;
 }

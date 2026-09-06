@@ -6,7 +6,10 @@ import 'services/api_service.dart';
 import 'services/auth_service.dart';
 import 'providers/auth_provider.dart';
 import 'router/app_router.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
+import 'db/app_database.dart';
+import 'services/sync_service.dart';
 void main() {
   runApp(const MyApp());
 }
@@ -23,6 +26,7 @@ class _MyAppState extends State<MyApp> {
   late AuthService _authService;
   late AuthProvider _authProvider;
   late GoRouter _router;
+  late SyncService _syncService;
 
   @override
   void initState() {
@@ -34,16 +38,27 @@ class _MyAppState extends State<MyApp> {
     _authService = AuthService(_apiService);
     _apiService.setAuthService(_authService);
     _authProvider = AuthProvider(_authService)..checkAuthStatus();
+    _syncService = SyncService(AppDatabase());
+
+_syncService.procesarCola();
 
     _apiService.onLogout = () {
-      _authProvider.logout();
-    };
+  _authProvider.logout();
+};
 
     // El router se construye UNA sola vez, con una referencia directa
     // al AuthProvider: su `redirect` lee el estado de autenticación
     // en cada evaluación, y se re-evalúa automáticamente gracias a
     // `refreshListenable: authProvider` (ver router/app_router.dart).
     _router = buildAppRouter(_authProvider);
+    Connectivity().onConnectivityChanged.listen((result) {
+  debugPrint('CONNECTIVITY: $result');
+
+  if (!result.contains(ConnectivityResult.none)) {
+    debugPrint('CONNECTIVITY: ejecutando sincronización');
+    _syncService.procesarCola();
+  }
+});
   }
 
   @override
