@@ -12,6 +12,7 @@ class ApiService {
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
   late final AuthService _authService;
   bool _isRefreshing = false;
+  static const int _maxRefreshAttempts = 1;
   final List<ErrorInterceptorHandler> _pendingRequests = [];
 
   ApiService._internal() {
@@ -30,11 +31,19 @@ class ApiService {
         },
         onError: (error, handler) async {
           if (error.response?.statusCode == 401) {
-            final refreshToken = await _authService.getRefreshToken();
-            if (refreshToken == null) {
-              _logout();
-              return handler.next(error);
-            }
+            final refreshAttempts =
+    error.requestOptions.extra['refreshAttempts'] ?? 0;
+
+if (refreshAttempts >= _maxRefreshAttempts) {
+  _logout();
+  return handler.next(error);
+}
+final refreshToken = await _authService.getRefreshToken();
+
+if (refreshToken == null) {
+  _logout();
+  return handler.next(error);
+}
 
             if (_isRefreshing) {
               _pendingRequests.add(handler);
@@ -57,7 +66,10 @@ class ApiService {
               }
               _pendingRequests.clear();
               // Retry the current request
-              _retry(error.requestOptions, handler);
+              error.requestOptions.extra['refreshAttempts'] =
+    refreshAttempts + 1;
+
+_retry(error.requestOptions, handler);
             } catch (e) {
               // Refresh failed, logout user
               _logout();

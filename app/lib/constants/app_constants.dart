@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:app/theme/app_theme_tokens.dart';
 
 class AppConstants {
-  static const String baseUrl = String.fromEnvironment(
-    'API_BASE_URL',
-    defaultValue: 'http://10.0.2.2:3000/api',
-  );
+  static const String environment = String.fromEnvironment(
+  'ENV',
+  defaultValue: 'dev',
+);
+
+static const String baseUrl = environment == 'prod'
+    ? 'https://api.comprasegura.com/api'
+    : 'http://10.0.2.2:3000/api';
   static const Color primaryDark = Color(0xFF00002A);
   static const Color primaryBlue = Color(0xFF1A3F75);
   static const Color accentBlue = Color(0xFF4E6A9C);
