@@ -13,6 +13,7 @@ import '../services/sync_service.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:dio/dio.dart'; 
+import '../errors/app_exception.dart';
 
 class CreateProductScreen extends StatefulWidget {
   const CreateProductScreen({super.key});

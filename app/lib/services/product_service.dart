@@ -2,7 +2,7 @@ import 'dart:io';
 import '../models/product_model.dart';
 import 'api_service.dart';
 import 'package:dio/dio.dart';
-
+import '../errors/app_exception.dart';
 
 class ProductService {
   final ApiService _apiService;
@@ -38,39 +38,49 @@ class ProductService {
     }
   }
 
-  Future<Map<String, dynamic>> createProduct({
-    required String nombre,
-    String? descripcion,
-    required double precio,
-    required String estadoUso,
-    required String categoria,
-    String? ubicacion,
-  }) async {
-    try {
-      final response = await _apiService.dio.post(
-        '/products',
-        data: {
-          'nombre': nombre,
-          'descripcion': descripcion,
-          'precio': precio,
-          'estado_uso': estadoUso,
-          'categoria': categoria,
-          'ubicacion': ubicacion,
-        },
+ Future<Map<String, dynamic>> createProduct({
+  required String nombre,
+  String? descripcion,
+  required double precio,
+  required String estadoUso,
+  required String categoria,
+  String? ubicacion,
+}) async {
+  try {
+    final response = await _apiService.dio.post(
+      '/products',
+      data: {
+        'nombre': nombre,
+        'descripcion': descripcion,
+        'precio': precio,
+        'estado_uso': estadoUso,
+        'categoria': categoria,
+        'ubicacion': ubicacion,
+      },
+    );
+
+    return response.data;
+  } on DioException catch (e) {
+    if (e.response?.statusCode == 422) {
+      final data = e.response?.data;
+      final map = <String, String>{};
+
+      for (final err in (data['errors'] as List? ?? [])) {
+        map[err['field'].toString()] =
+            err['message'].toString();
+      }
+
+      throw ValidationException(
+        fieldErrors: map,
+        message:
+            data['message']?.toString() ??
+            'Error de validación',
       );
-      return response.data;
-    } on DioException catch (e) {
-  if (e.response?.statusCode == 422) {
-    final data = e.response?.data;
-    final map = <String, String>{};
-    for (final err in (data['errors'] as List? ?? [])) {
-      map[err['field'].toString()] = err['message'].toString();
     }
-    throw ValidationException(map, data['message']?.toString() ?? 'Error de validación');
+
+    rethrow;
   }
-  rethrow;
 }
-  }
 
   Future<Map<String, dynamic>> uploadProductImage({
     required int productId,
@@ -113,10 +123,4 @@ class ProductService {
     }
   }
 }
-class ValidationException implements Exception {
-  final Map<String, String> fieldErrors;
-  final String message;
-  ValidationException(this.fieldErrors, this.message);
-  @override
-  String toString() => message;
-}
+
