@@ -11,39 +11,27 @@ class ProductRepository {
   final ProductRemoteSource _remoteSource;
   final ProductLocalSource _localSource;
 
-  ProductRepository(
-    this._remoteSource,
-    this._localSource,
-  );
+  ProductRepository(this._remoteSource, this._localSource);
 
   Future<List<Product>> getProducts() async {
     try {
-      final remoteProducts =
-          await _remoteSource.getProducts();
+      final remoteProducts = await _remoteSource.getProducts();
 
       await _localSource.clearSyncedProducts();
 
-      final localProducts =
-          remoteProducts.map(_dtoToLocal).toList();
+      final localProducts = remoteProducts.map(_dtoToLocal).toList();
 
-      await _localSource.saveProducts(
-        localProducts,
-      );
+      await _localSource.saveProducts(localProducts);
 
-      return remoteProducts
-          .map(_dtoToDomain)
-          .toList();
+      return remoteProducts.map(_dtoToDomain).toList();
     } on NetworkException {
-      final cached =
-          await _localSource.getProducts();
+      final cached = await _localSource.getProducts();
 
       return cached.map(_localToDomain).toList();
     }
   }
 
-  ProductosLocalCompanion _dtoToLocal(
-    ProductDto dto,
-  ) {
+  ProductosLocalCompanion _dtoToLocal(ProductDto dto) {
     return ProductosLocalCompanion.insert(
       clienteId: 'srv-${dto.idProducto}',
       idProducto: Value(dto.idProducto),
@@ -68,18 +56,25 @@ class ProductRepository {
           ? double.parse(dto.precio)
           : (dto.precio as num).toDouble(),
       estadoUso: dto.estadoUso,
-      estadoDisponibilidad:
-          dto.estadoDisponibilidad,
+      estadoDisponibilidad: dto.estadoDisponibilidad,
       categoria: dto.categoria,
       ubicacion: dto.ubicacion,
       creadoEn: dto.creadoEn,
-      imagenes: const [],
+      imagenes: dto.imagenes
+          .map(
+            (i) => ProductImage(
+              idImagen: i.idImagen,
+              idProducto: i.idProducto,
+              url: i.url,
+              estado: i.estado,
+              creadoEn: i.creadoEn,
+            ),
+          )
+          .toList(),
     );
   }
 
-  Product _localToDomain(
-    ProductosLocalData p,
-  ) {
+  Product _localToDomain(ProductosLocalData p) {
     return Product(
       idProducto: p.idProducto ?? 0,
       idUsuario: 0,
@@ -87,10 +82,7 @@ class ProductRepository {
       descripcion: 'Producto almacenado localmente',
       precio: p.precio,
       estadoUso: p.estadoUso,
-      estadoDisponibilidad:
-          p.pendienteEnvio
-              ? 'pendiente'
-              : 'disponible',
+      estadoDisponibilidad: p.pendienteEnvio ? 'pendiente' : 'disponible',
       categoria: p.categoria,
       ubicacion: p.ubicacion,
       creadoEn: p.actualizadoEn,

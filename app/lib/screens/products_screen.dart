@@ -23,7 +23,6 @@ class ProductsScreen extends StatefulWidget {
 }
 
 class _ProductsScreenState extends State<ProductsScreen> {
-
   final AppDatabase _db = AppDatabase();
 
   late final ProductRepository _repository;
@@ -34,8 +33,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
 
   String _searchQuery = '';
 
-  final TextEditingController _searchController =
-      TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
 
   StreamSubscription? _connectivitySubscription;
 
@@ -50,8 +48,9 @@ class _ProductsScreenState extends State<ProductsScreen> {
 
     _loadProducts();
 
-    _connectivitySubscription =
-        Connectivity().onConnectivityChanged.listen((_) {
+    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((
+      _,
+    ) {
       _loadProducts();
     });
   }
@@ -63,6 +62,24 @@ class _ProductsScreenState extends State<ProductsScreen> {
     super.dispose();
   }
 
+  // NUEVO MÉTODO PARA ACTUALIZAR LA ÚLTIMA FECHA LOCAL
+  Future<void> _actualizarUltimaFechaLocal() async {
+    final locales = await _db.select(_db.productosLocal).get();
+
+    if (locales.isEmpty) {
+      return;
+    }
+
+    final fecha = locales
+        .map((p) => p.actualizadoEn)
+        .reduce((a, b) => a.isAfter(b) ? a : b);
+
+    setState(() {
+      _ultimaActualizacionLocal = fecha;
+    });
+  }
+
+  // MÉTODO MODIFICADO
   Future<void> _loadProducts() async {
     setState(() {
       _state = const RemoteLoading();
@@ -71,9 +88,17 @@ class _ProductsScreenState extends State<ProductsScreen> {
     try {
       final products = await _repository.getProducts();
 
-      setState(() {
-        _ultimaActualizacionLocal = null;
+      final connectivity = await Connectivity().checkConnectivity();
 
+      final offline = connectivity.contains(ConnectivityResult.none);
+
+      if (offline) {
+        await _actualizarUltimaFechaLocal();
+      } else {
+        _ultimaActualizacionLocal = null;
+      }
+
+      setState(() {
         _state = products.isEmpty
             ? const RemoteEmpty()
             : RemoteSuccess(products);
@@ -96,24 +121,17 @@ class _ProductsScreenState extends State<ProductsScreen> {
       return s;
     }
 
-    final query =
-        _searchQuery.trim().toLowerCase();
+    final query = _searchQuery.trim().toLowerCase();
 
     final filtered = s.data
-        .where(
-          (p) =>
-              p.nombre.toLowerCase().contains(query),
-        )
+        .where((p) => p.nombre.toLowerCase().contains(query))
         .toList();
 
-    return filtered.isEmpty
-        ? const RemoteEmpty()
-        : RemoteSuccess(filtered);
+    return filtered.isEmpty ? const RemoteEmpty() : RemoteSuccess(filtered);
   }
 
   String _formatoAntiguedad(DateTime fecha) {
-    final diff =
-        DateTime.now().difference(fecha);
+    final diff = DateTime.now().difference(fecha);
 
     if (diff.inMinutes < 1) {
       return 'hace instantes';
@@ -128,50 +146,32 @@ class _ProductsScreenState extends State<ProductsScreen> {
 
   Widget _buildSearchBar() {
     return Padding(
-      padding:
-          const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
       child: TextField(
         controller: _searchController,
-        style:
-            const TextStyle(color: Colors.white),
+        style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(
           hintText: 'Buscar productos...',
-          hintStyle: const TextStyle(
-            color: Colors.white54,
-          ),
-          prefixIcon: const Icon(
-            Icons.search,
-            color: Colors.white54,
-          ),
-          suffixIcon:
-              _searchQuery.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(
-                        Icons.clear,
-                        color: Colors.white54,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _searchController.clear();
-                          _searchQuery = '';
-                        });
-                      },
-                    )
-                  : null,
+          hintStyle: const TextStyle(color: Colors.white54),
+          prefixIcon: const Icon(Icons.search, color: Colors.white54),
+          suffixIcon: _searchQuery.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.clear, color: Colors.white54),
+                  onPressed: () {
+                    setState(() {
+                      _searchController.clear();
+                      _searchQuery = '';
+                    });
+                  },
+                )
+              : null,
           filled: true,
-          fillColor:
-              AppConstants.accentBlue.withValues(
-            alpha: 0.3,
-          ),
+          fillColor: AppConstants.accentBlue.withValues(alpha: 0.3),
           border: OutlineInputBorder(
-            borderRadius:
-                BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(20),
             borderSide: BorderSide.none,
           ),
-          contentPadding:
-              const EdgeInsets.symmetric(
-            vertical: 12,
-          ),
+          contentPadding: const EdgeInsets.symmetric(vertical: 12),
         ),
         onChanged: (value) {
           setState(() {
@@ -189,17 +189,10 @@ class _ProductsScreenState extends State<ProductsScreen> {
         _buildSearchBar(),
         if (_ultimaActualizacionLocal != null)
           Padding(
-            padding:
-                const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 4,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             child: Text(
               'Sin conexión — datos de ${_formatoAntiguedad(_ultimaActualizacionLocal!)}',
-              style: const TextStyle(
-                color: Colors.orange,
-                fontSize: 12,
-              ),
+              style: const TextStyle(color: Colors.orange, fontSize: 12),
             ),
           ),
         Expanded(
@@ -208,12 +201,8 @@ class _ProductsScreenState extends State<ProductsScreen> {
             onRetry: _loadProducts,
             onProductTap: (product) {
               context
-                  .push(
-                    '/products/${product.idProducto}',
-                  )
-                  .then(
-                    (_) => _loadProducts(),
-                  );
+                  .push('/products/${product.idProducto}')
+                  .then((_) => _loadProducts());
             },
           ),
         ),

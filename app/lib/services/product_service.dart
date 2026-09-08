@@ -12,6 +12,7 @@ class ProductService {
   Future<List<Product>> getProducts() async {
     try {
       final response = await _apiService.dio.get('/products');
+      print(response.data);
       final List<dynamic> data = response.data;
       return data.map((json) => Product.fromJson(json)).toList();
     } catch (e) {
